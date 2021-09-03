@@ -8,7 +8,7 @@ MTGATrackerのbackend、およびAssistantSeikaと組み合わせて、VOICEROID
 
 以下がインストール済であること。
 
-* Python, pip
+* [Python](https://www.python.org/), [pip](https://pypi.org/project/pip/)
 * [poslogithub/python-mtga](https://github.com/poslogithub/python-mtga)
 * [poslogithub/mtgatracker](https://github.com/poslogithub/mtgatracker)
 * [AssistantSeika](https://hgotoh.jp/wiki/doku.php/documents/voiceroid/assistantseika/start)
