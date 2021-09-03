@@ -10,6 +10,7 @@ MTGATrackerのbackend、およびAssistantSeikaと組み合わせて、VOICEROID
 
 * [Python](https://www.python.org/), [pip](https://pypi.org/project/pip/)
 * [poslogithub/python-mtga](https://github.com/poslogithub/python-mtga)
+  * [set_data/dynamic.py](https://github.com/poslogithub/python-mtga/blob/master/source/mtga/set_data/dynamic.py)の94行目の「en-US」を「ja-JP」に書き換えてください。
 * [poslogithub/mtgatracker](https://github.com/poslogithub/mtgatracker)
 * [AssistantSeika](https://hgotoh.jp/wiki/doku.php/documents/voiceroid/assistantseika/start)
 * [VOICEROID+ 東北きりたん EX](https://www.ah-soft.com/voiceroid/kiritan/)、または[AssistantSeikaが対応している音声合成製品](https://hgotoh.jp/wiki/doku.php/documents/voiceroid/assistantseika/assistantseika-004)
