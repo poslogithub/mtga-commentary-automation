@@ -1,0 +1,2 @@
+# mtga-commentary-automation
+ MTGATrackerのbackend、およびAssistantSeikaと組み合わせて、VOICEROID等にMTGAの実況をしてもらうためのツール。
