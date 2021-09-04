@@ -38,7 +38,7 @@ MTGA→mtgatracker_backend.py→commentary_backend.pyの起動順序は守って
 ## 今後やりたいこと
 
 * 実況するイベントを増やす（何が氏んだとか何が誘発したとか）。
-  * websocketで送信するメッセージを正規のJSONにする。
+  * MTGATrackerがWebSocketで送信するメッセージを正規のJSONにする。
 * MTGA→mtgatracker_backend.py→commentary_backend.pyの起動順序を守らなくてもいいようにする。
 * 実況する内容やcidを設定ファイルに外出しする。
 * 導入方法を簡単にする。
