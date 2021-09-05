@@ -9,11 +9,10 @@ from seikasay2 import SeikaSay2
 seikasey2 = SeikaSay2()
 
 def on_message(ws, message):
-    print(message)  #debug
+    print(json.dumps(message, ensure_ascii=False))  #debug
     text = ""
     blob = json.loads(message)
     if blob and "game_history_event" in blob:
-        print(blob) #debug
         verb = ""
         is_opponent = False
         text_array = blob.get("game_history_event")
