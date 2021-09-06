@@ -7,51 +7,86 @@ import websocket
 from seikasay2 import SeikaSay2
 
 seikasey2 = SeikaSay2()
+hero_screen_name = ""
+opponent_screen_name = ""
 
 def on_message(ws, message):
-    print(message)  #debug
+    global hero_screen_name
+    global opponent_screen_name
+
     text = ""
     blob = json.loads(message)
-    if blob and "game_history_event" in blob:
-        print(blob) #debug
-        verb = ""
-        is_opponent = False
+    print(blob)
+    if blob and "game_history_event" in blob :
         text_array = blob.get("game_history_event")
-        if len(text_array) >= 1:
-            actor_text = ""
-            if isinstance(text_array[0], dict):
-                actor_text = re.sub("（.+?）", "", text_array[0].get("text"))
-                if text_array[0].get("type") == "opponent":
+        is_opponent = True if text_array[0].get("type") == "opponent" else False
+
+        if len(text_array) == 1:
+            if text_array[0].get("type") == "game":
+                text = "対戦ありがとうございました。"
+            elif text_array[0].get("type") == "turn":
+                if text_array[0].get("text").find(opponent_screen_name) >= 0:
                     is_opponent = True
-                elif text_array[0].get("type") == "game":
-                    text = "対戦ありがとうございました。"
+                text = "{}のターン。".format("お相手" if is_opponent else "こちら")
             else:
-                actor_text = re.sub("（.+?）", "", text_array[0])
-        if len(text_array) >= 2:
-            verb = text_array[1]
-        if verb == " attacking":
-            text = "{}{}でアタック。".format("お相手は" if is_opponent else "", actor_text)
-        if len(text_array) >= 3:
-            target_text = ""
-            if isinstance(text_array[2], dict):
-                target_text = re.sub("（.+?）", "", text_array[2].get("text"))
-            else:
-                target_text = re.sub("（.+?）", "", text_array[2])
-            if verb == " vs ":
+                print("debug: 不明なtype")
+        else:
+            verb = text_array[1].strip()
+            if verb == "attacking":
+                attacker = re.sub("（.+?）", "", text_array[0].get("text"))
+                text = "{}{}でアタック。".format("お相手は" if is_opponent else "", attacker)
+            elif verb == "blocks":
+                blocker = re.sub("（.+?）", "", text_array[0].get("text"))
+                attacker = re.sub("（.+?）", "", text_array[2].get("text"))
+                text = "{}{}で{}をブロック。".format("お相手は" if is_opponent else "", blocker, attacker)
+            elif verb == "casts":
+                spell = re.sub("（.+?）", "", text_array[2].get("text"))
+                text = "{}{}をキャスト。".format("お相手は" if is_opponent else "", spell)
+            elif verb == "draws":
+                if len(text_array) >= 3:
+                    card = re.sub("（.+?）", "", text_array[2].get("text"))
+                    text = "{}{}をドロー。".format("お相手は" if is_opponent else "", card)
+                else:
+                    pass    # ドロー内容が不明の場合（＝対戦相手のドロー）は実況しない
+            elif verb == "exiles":
+                card = re.sub("（.+?）", "", text_array[2].get("text"))
+                text = "{}{}を追放。".format("お相手は" if is_opponent else "", card)
+            elif verb == "plays":
+                card = re.sub("（.+?）", "", text_array[2].get("text"))
+                text = "{}{}をプレイ。".format("お相手は" if is_opponent else "", card)
+            elif verb == "resolves":
+                pass    # 呪文の解決は実況しない
+            elif verb == "sent to graveyard":
+                card = re.sub("（.+?）", "", text_array[0].get("text"))
+                reason = text_array[2]
+                if reason in ["(Destroy)", "(SBA_Damage)", "(SBA_ZeroToughness)"]:
+                    text = "{}{}が死亡。".format("お相手の" if is_opponent else "", card)
+                elif reason == "(Conjure)":
+                    text = "{}墓地に{}創出。".format("お相手の" if is_opponent else "", "が" if is_opponent else "を", card)
+                elif reason == "(Discard)":
+                    text = "{}{}{}をディスカード。".format("お相手は" if is_opponent else "", card)
+                elif reason == "(Sacrifice)":
+                    text = "{}{}{}生け贄に。".format("お相手の" if is_opponent else "", card, "が" if is_opponent else "を", card)
+                elif reason == "(SBA_UnattachedAura)":
+                    text = "{}{}が墓地に。".format("お相手の" if is_opponent else "", card)
+                elif reason == "(nil)":
+                    pass    # 不明な理由で墓地に落ちた場合（立ち消え等）は実況しない
+                else:
+                    print("debug: 不明なreason")
+            elif verb == "vs":
+                hero_screen_name = text_array[0].get("text")
+                opponent_screen_name = text_array[2].get("text")
                 text = "おっすおねがいしまーす。"
-            elif verb == " draws " and not is_opponent:
-                text = "{}をドロー。".format(target_text)
-            elif verb == " plays ":
-                text = "{}{}をプレイ。".format("お相手は" if is_opponent else "", target_text)
-            elif verb == " casts ":
-                text = "{}{}をキャスト。".format("お相手は" if is_opponent else "", target_text)
-            elif verb == " blocks ":
-                text = "{}{}で{}をブロック。".format("お相手は" if is_opponent else "", actor_text, target_text)
-            # elif verb == " sent to graveyard ":
-            #     text = "{}{}が墓地に。".format("お相手の" if is_opponent else "", actor_text))
-            elif verb == "'s life total changed ":
-                life_from = int(target_text.split(" -> ")[0])
-                life_to = int(target_text.split(" -> ")[1])
+            elif verb == "'s":
+                if len(text_array) >= 5 and text_array[3].strip() == "draws":
+                    card = re.sub("（.+?）", "", text_array[4].get("text"))
+                    text = "{}をドロー。".format(card)
+                if len(text_array) >= 5 and text_array[3].strip() == "exiles":
+                    card = re.sub("（.+?）", "", text_array[4].get("text"))
+                    text = "{}を追放。".format(card)
+            elif verb == "'s life total changed":
+                life_from = int(text_array[2].split(" -> ")[0])
+                life_to = int(text_array[2].split(" -> ")[1])
                 if not is_opponent and life_from > life_to:
                     text = "{}点くらって、ライフは{}。".format(life_from - life_to, life_to)
                 elif not is_opponent and life_from < life_to:
@@ -60,12 +95,17 @@ def on_message(ws, message):
                     text = "{}点あたえて、お相手のライフは{}。".format(life_from - life_to, life_to)
                 elif not is_opponent and life_from < life_to:
                     text = "{}点回復されて、お相手のライフは{}。".format(life_to - life_from, life_to)
-            # elif verb == "'s ":
-            #     text = "{}{}の能力を起動。".format("お相手は" if is_opponent else "", actor_text))
-            # elif verb == " exiles ":
-            #     text = "{}{}が追放。".format("お相手の" if is_opponent else "", target_text))
-        if text:
-            seikasey2.talk(text)
+            elif verb == ":":
+                if len(text_array) >= 7 and text_array[5].strip() == "draws":
+                    card = re.sub("（.+?）", "", text_array[6].get("text"))
+                    text = "{}をドロー。".format(card)
+            elif verb == "'s starting hand:":
+                text = "マリガンチェック。"
+            else:
+                print("debug: 不明なverb")
+
+    if text:
+        seikasey2.talk(text)
 
 def on_error(ws, error):
     print("debug: called on_error")
