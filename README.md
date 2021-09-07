@@ -1,6 +1,6 @@
 # mtga-commentary-automation
 
-MTGATrackerのbackend、およびAssistantSeikaと組み合わせて、VOICEROID等にMTGAの実況をしてもらうためのツール。
+MTGATrackerのbackend、およびAssistantSeikaと組み合わせて、VOICEROID等にMTGAの実況をしてもらうためのツールです。
  
 ## 使い方
 
@@ -35,10 +35,49 @@ ZIPをダウンロードして展開してください。<br />
 
 MTGA→mtgatracker_backend.py→commentary_backend.pyの起動順序は守ってください。
 
-## 今後やりたいこと
+# 実況内容
 
-* 実況するイベントを増やす（何が氏んだとか何が誘発したとか）。
-  * MTGATrackerがWebSocketで送信するメッセージを正規のJSONにする。
-* MTGA→mtgatracker_backend.py→commentary_backend.pyの起動順序を守らなくてもいいようにする。
+## 実況するイベント
+
+* ゲーム開始
+* ゲーム終了
+* マリガンチェック
+* 自分のドロー
+* 土地のプレイ
+* 呪文のキャスト
+* 攻撃クリーチャー指定
+* ブロッククリーチャー指定
+* 墓地送り
+  * 理由によって実況内容が変わる。
+  * 非パーマネント呪文の解決による墓地送りは実況しない（MTGATrackerからメッセージが来ないため）。
+* カードの追放
+  * 追放元の領域は問わない（MTGATrackerから追放元領域の情報が来ないため）。<br />そのため、墓地掃除とか食らったらひどいことになる可能性がある。少なくとも脱出コストの支払いによる追放は実況する。
+* ライフ変動
+
+## 実況しないイベント
+
+* 該当するメッセージがMTGATrackerから来ないため
+  * マリガン
+  * 非パーマネント呪文が解決されたことによる墓地送り
+  * 起動型能力の起動（実況したい）
+  * 誘発型能力の誘発
+  * 占術（実況したい）
+  * サーチ（実況したい）
+* 不要と判断したため
+  * 対戦相手のドロー
+  * 呪文の解決
+  * 能力の解決
+
+## 未確認のイベント
+
+* 切削による墓地送り
+* 予顕による追放
+
+# 今後やりたいこと
+
+* mtgatracker_backendとcommentary_backendをexe化する。
+* MTGA→mtgatracker_backend→commentary_backendの起動順序を守らなくてもいいようにする。
+  * commentary_backend起動時に、MTGA, AssistantSeika（話者一覧が空でないか含む。`-list`オプションで実現可...のはず）, mtgatracker_backendが起動チェックを行う。
+  * VOICEROIDの起動チェックと、話者一覧とcommentary_backendが認識しているcidが一致しているかの確認まではしない。勘弁して。
 * 実況する内容やcidを設定ファイルに外出しする。
-* 導入方法を簡単にする。
+* 自分と対戦相手で話者を変えられるようにする。
