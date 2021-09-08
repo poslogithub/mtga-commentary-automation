@@ -100,9 +100,9 @@ def on_message(ws, message):
                     text = "{}点くらって、ライフは{}。".format(life_from - life_to, life_to)
                 elif not is_opponent and life_from < life_to:
                     text = "{}点回復して、ライフは{}。".format(life_to - life_from, life_to)
-                elif not is_opponent and life_from > life_to:
+                elif is_opponent and life_from > life_to:
                     text = "{}点あたえて、お相手のライフは{}。".format(life_from - life_to, life_to)
-                elif not is_opponent and life_from < life_to:
+                elif is_opponent and life_from < life_to:
                     text = "{}点回復されて、お相手のライフは{}。".format(life_to - life_from, life_to)
             elif verb == "'s starting hand:":
                 text = "マリガンチェック。"
