@@ -5,6 +5,9 @@ import sys
 import time
 import websocket
 from seikasay2 import SeikaSay2
+from logging import getLogger
+import psutil
+from tkinter import Tk, messagebox
 
 seikasey2 = SeikaSay2()
 hero_screen_name = ""
@@ -16,7 +19,7 @@ def on_message(ws, message):
 
     text = ""
     blob = json.loads(message)
-    print(blob)
+    logger.debug(blob)
     if blob and "game_history_event" in blob :
         text_array = blob.get("game_history_event")
 
@@ -28,7 +31,7 @@ def on_message(ws, message):
                     is_opponent = True
                 text = "{}のターン。".format("お相手" if is_opponent else "こちら")
             else:
-                print("debug: 不明なtype")
+                logger.warning("debug: 不明なtype")
         else:
             verb = text_array[1].strip()
             if verb == "attacking":
@@ -78,7 +81,7 @@ def on_message(ws, message):
                 elif reason == "(nil)":
                     pass    # 不明な理由で墓地に落ちた場合（立ち消え等）は実況しない
                 else:
-                    print("debug: 不明なreason")
+                    logger.warning("debug: 不明なreason")
             elif verb == "vs":
                 hero_screen_name = text_array[0].get("text")
                 opponent_screen_name = text_array[2].get("text")
@@ -107,40 +110,87 @@ def on_message(ws, message):
             elif verb == "'s starting hand:":
                 text = "マリガンチェック。"
             else:
-                print("debug: 不明なverb")
+                logger.warning("debug: 不明なverb")
 
     if text:
-        seikasey2.talk(text)
+        seikasey2.speak(text)
+        print(text)
+        logger.info(text)
 
 def on_error(ws, error):
-    print("debug: called on_error")
     print(error)
+    logger.error("debug: called on_error")
+    logger.error(error)
 
 def on_close(ws):
     print("### closed ###")
+    logger.info("### closed ###")
 
 def on_open(ws):
     def run(*args):
-        print("debug: websocket is opened")
+        print("### websocket is opened ###")
+        logger.info("debug: websocket is opened")
 
         while(True):
             line = sys.stdin.readline()
             if line != "":
-                print("debug: sending value is " + line)
+                print("sending value is " + line)
+                logger.info("debug: sending value is " + line)
                 ws.send(line)
 
     _thread.start_new_thread(run, ())
 
 
 if __name__ == "__main__":
-
+    logger = getLogger("commentary_backend")
     param = sys.argv
 
     url = "ws://localhost:8089"
 
     if len(param) == 2:
         url = param[1]
-        print("debug: param[1] is " + param[1])
+        print("param[1] is " + param[1])
+        logger.info("debug: param[1] is " + param[1])
+
+    root = Tk()
+    root.withdraw()
+    print("mtgatracker_backend.exe running check")
+    running = False
+    while not running:
+        for proc in psutil.process_iter():
+            try:
+                if proc.exe().endswith("mtgatracker_backend.exe"):
+                    running = True
+                    print("mtgatracker_backend.exe running check: OK")
+                    break
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                pass
+        if not running:
+            ans = messagebox.askyesnocancel(message="mtgatracker_backendが起動していない可能性があります。\nはい: 再試行\nいいえ: 無視して続行")
+            if ans == True:
+                pass
+            elif ans == False:
+                print("mtgatracker_backend.exe running check: NG")
+                running = True
+
+    print("AssistantSeika running check")
+    running = False
+    while not running:
+        for proc in psutil.process_iter():
+            try:
+                if proc.exe().endswith("AssistantSeika.exe"):
+                    running = True
+                    print("AssistantSeika running check: OK")
+                    break
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                pass
+        if not running:
+            ans = messagebox.askyesnocancel(message="AssistantSeikaが起動していないか、話者一覧が取得できていない可能性があります。\nはい: 再試行\nいいえ: 無視して続行")
+            if ans == True:
+                pass
+            elif ans == False:
+                print("mtgatracker_backend.exe running check: NG")
+                running = True
 
     websocket.enableTrace(False)
     ws = websocket.WebSocketApp(url,
