@@ -8,6 +8,8 @@ from seikasay2 import SeikaSay2
 from logging import getLogger
 import psutil
 from tkinter import Tk, messagebox
+import subprocess
+
 
 seikasey2 = SeikaSay2()
 hero_screen_name = ""
@@ -17,105 +19,91 @@ def on_message(ws, message):
     global hero_screen_name
     global opponent_screen_name
 
-    text = ""
     blob = json.loads(message)
     logger.debug(blob)
-    if blob and "game_history_event" in blob :
+    if blob and "game_history_event" in blob:
         text_array = blob.get("game_history_event")
+        is_opponent = False
+        message_type = ""
+        verb = ""
+        attacker = ""
+        blocker = ""
+        card = ""
+        source = ""
+        reason = ""
+        life_from = 0
+        life_to = 0
 
-        if len(text_array) == 1:
+        if len(text_array) == 0:
+            logger.warning("debug: 不明なtext_array")
+        elif len(text_array) == 1:
             if text_array[0].get("type") == "game":
-                text = "対戦ありがとうございました。"
+                message_type = text_array[0].get("type")
             elif text_array[0].get("type") == "turn":
                 if text_array[0].get("text").find(opponent_screen_name) >= 0:
                     is_opponent = True
-                text = "{}のターン。".format("お相手" if is_opponent else "こちら")
+                message_type = text_array[0].get("type")
             else:
                 logger.warning("debug: 不明なtype")
         else:
             verb = text_array[1].strip()
+            if verb == "'s":    # "'s"が入った場合はガチャガチャする
+                source = text_array[0].get("text")
+                is_opponent = True if text_array[0].get("type") == "opponent" else False
+                message_type = text_array[2].get("type")    # ability
+                if len(text_array) >= 4 and text_array[3].strip() != ":":   # ex: "CARDNAME1 's ability exiles CARDNAME2"
+                    text_array = text_array[2:]
+                elif len(text_array) >= 6 and text_array[3].strip() == ":": # ex: "CARDNAME1 's ability : SCREENNAME draws CARDNAME2"
+                    text_array = text_array[4:]
+                verb = text_array[1].strip()
+                if verb == "'s":
+                    logger.warning("debug: 不明なverb")
+
             if verb == "attacking":
                 is_opponent = True if text_array[0].get("type") == "opponent" else False
                 attacker = re.sub("（.+?）", "", text_array[0].get("text"))
-                text = "{}{}でアタック。".format("お相手は" if is_opponent else "", attacker)
             elif verb == "blocks":
                 is_opponent = True if text_array[0].get("type") == "opponent" else False
                 blocker = re.sub("（.+?）", "", text_array[0].get("text"))
                 attacker = re.sub("（.+?）", "", text_array[2].get("text"))
-                text = "{}{}で{}をブロック。".format("お相手は" if is_opponent else "", blocker, attacker)
             elif verb == "casts":
                 is_opponent = True if text_array[0].get("type") == "opponent" else False
                 card = re.sub("（.+?）", "", text_array[2].get("text"))
-                text = "{}{}をキャスト。".format("お相手は" if is_opponent else "", card)
             elif verb == "draws":
+                is_opponent = True if text_array[0].get("type") == "opponent" else False
                 if len(text_array) >= 3:
-                    is_opponent = True if text_array[0].get("type") == "opponent" else False
                     card = re.sub("（.+?）", "", text_array[2].get("text"))
-                    text = "{}{}をドロー。".format("お相手は" if is_opponent else "", card)
-                else:
-                    pass    # ドロー内容が不明の場合（＝対戦相手のドロー）は実況しない
             elif verb == "exiles":
                 is_opponent = True if text_array[2].get("type") == "opponent" else False
                 card = re.sub("（.+?）", "", text_array[2].get("text"))
-                text = "{}{}を追放。".format("お相手の" if is_opponent else "", card)
             elif verb == "plays":
                 is_opponent = True if text_array[0].get("type") == "opponent" else False
                 card = re.sub("（.+?）", "", text_array[2].get("text"))
-                text = "{}{}をプレイ。".format("お相手は" if is_opponent else "", card)
             elif verb == "resolves":
-                pass    # 呪文の解決は実況しない
+                is_opponent = True if text_array[0].get("type") == "opponent" else False
+                card = re.sub("（.+?）", "", text_array[0].get("text"))
             elif verb == "sent to graveyard":
                 is_opponent = True if text_array[0].get("type") == "opponent" else False
                 card = re.sub("（.+?）", "", text_array[0].get("text"))
                 reason = text_array[2]
-                if reason in ["(Destroy)", "(SBA_Damage)", "(SBA_ZeroToughness)"]:
-                    text = "{}{}が死亡。".format("お相手の" if is_opponent else "", card)
-                elif reason == "(Conjure)":
-                    text = "{}墓地に{}創出。".format("お相手の" if is_opponent else "", "が" if is_opponent else "を", card)
-                elif reason == "(Discard)":
-                    text = "{}{}{}をディスカード。".format("お相手は" if is_opponent else "", card)
-                elif reason == "(Sacrifice)":
-                    text = "{}{}{}生け贄に。".format("お相手の" if is_opponent else "", card, "が" if is_opponent else "を", card)
-                elif reason == "(SBA_UnattachedAura)":
-                    text = "{}{}が墓地に。".format("お相手の" if is_opponent else "", card)
-                elif reason == "(nil)":
-                    pass    # 不明な理由で墓地に落ちた場合（立ち消え等）は実況しない
-                else:
+                if reason not in ["(Conjure)", "(Destroy)", "(Discard)", "(Sacrifice)", "(SBA_Damage)", "(SBA_ZeroToughness)", "(SBA_UnattachedAura)", "(nil)"]:
                     logger.warning("debug: 不明なreason")
             elif verb == "vs":
                 hero_screen_name = text_array[0].get("text")
                 opponent_screen_name = text_array[2].get("text")
-                text = "おっすおねがいしまーす。"
-            elif verb == "'s":
-                if len(text_array) >= 7 and text_array[5].strip() == "draws":
-                    is_opponent = True if text_array[6].get("type") == "opponent" else False
-                    card = re.sub("（.+?）", "", text_array[6].get("text"))
-                    text = "{}をドロー。".format(card)
-                if len(text_array) >= 7 and text_array[5].strip() == "exiles":
-                    is_opponent = True if text_array[6].get("type") == "opponent" else False
-                    card = re.sub("（.+?）", "", text_array[6].get("text"))
-                    text = "{}をドロー。".format(card)
             elif verb == "'s life total changed":
                 is_opponent = True if text_array[0].get("type") == "opponent" else False
                 life_from = int(text_array[2].split(" -> ")[0])
                 life_to = int(text_array[2].split(" -> ")[1])
-                if not is_opponent and life_from > life_to:
-                    text = "{}点くらって、ライフは{}。".format(life_from - life_to, life_to)
-                elif not is_opponent and life_from < life_to:
-                    text = "{}点回復して、ライフは{}。".format(life_to - life_from, life_to)
-                elif is_opponent and life_from > life_to:
-                    text = "{}点あたえて、お相手のライフは{}。".format(life_from - life_to, life_to)
-                elif is_opponent and life_from < life_to:
-                    text = "{}点回復されて、お相手のライフは{}。".format(life_to - life_from, life_to)
             elif verb == "'s starting hand:":
-                text = "マリガンチェック。"
+                pass
             else:
                 logger.warning("debug: 不明なverb")
 
-    if text:
-        seikasey2.speak(text)
-        print(text)
-        logger.info(text)
+        text = seikasey2.speak(is_opponent, message_type, verb, attacker, blocker, card, source, reason, life_from, life_to)
+        if text:
+            print(text)
+            logger.info(text)
 
 def on_error(ws, error):
     print(error)
@@ -154,6 +142,7 @@ if __name__ == "__main__":
 
     root = Tk()
     root.withdraw()
+
     print("mtgatracker_backend.exe running check")
     running = False
     while not running:
@@ -166,7 +155,7 @@ if __name__ == "__main__":
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                 pass
         if not running:
-            ans = messagebox.askyesnocancel(message="mtgatracker_backendが起動していない可能性があります。\nはい: 再試行\nいいえ: 無視して続行")
+            ans = messagebox.askyesno(__file__, "mtgatracker_backendが起動していない可能性があります。\nはい: 再試行\nいいえ: 無視して続行")
             if ans == True:
                 pass
             elif ans == False:
@@ -178,14 +167,14 @@ if __name__ == "__main__":
     while not running:
         for proc in psutil.process_iter():
             try:
-                if proc.exe().endswith("AssistantSeika.exe"):
+                if proc.exe().endswith("AssistantSeika.exe") and seikasey2.list().returncode == 0:
                     running = True
                     print("AssistantSeika running check: OK")
                     break
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                 pass
         if not running:
-            ans = messagebox.askyesnocancel(message="AssistantSeikaが起動していないか、話者一覧が取得できていない可能性があります。\nはい: 再試行\nいいえ: 無視して続行")
+            ans = messagebox.askyesno(__file__, "AssistantSeikaが起動していないか、話者一覧が取得できていない可能性があります。\nはい: 再試行\nいいえ: 無視して続行")
             if ans == True:
                 pass
             elif ans == False:

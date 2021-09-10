@@ -1,0 +1,308 @@
+[
+    {
+        "type": "game",
+        "speak": [
+            {
+                "text": "対戦ありがとうございました。",
+                "volume": null,
+                "speed": null,
+                "pitch": null,
+                "alpha": null,
+                "intonation": null,
+                "emotionEP": null,
+                "emotionP": null,
+                "overBanner": null
+            },
+            {
+                "text": "対戦ありがとうございました。",
+                "volume": null,
+                "speed": null,
+                "pitch": null,
+                "alpha": null,
+                "intonation": null,
+                "emotionEP": null,
+                "emotionP": null,
+                "overBanner": null
+            },
+            {
+                "text": "対戦ありがとうございました。",
+                "volume": null,
+                "speed": null,
+                "pitch": null,
+                "alpha": null,
+                "intonation": null,
+                "emotionEP": null,
+                "emotionP": null,
+                "overBanner": null
+            }
+        ]
+    },
+    {
+        "type": "turn",
+        "speak": [
+            {
+                "text": "こちらのターン。"
+            },
+            {
+                "text": "お相手のターン。"
+            },
+            {
+                "text": "こちらのターン。"
+            }
+        ]
+    },
+    {
+        "verb": "attacking",
+        "speak": [
+            {
+                "text": "{attacker}でアタック。"
+            },
+            {
+                "text": "お相手は{attacker}でアタック。"
+            },
+            {
+                "text": "{attacker}でアタック。"
+            }
+        ]
+    },
+    {
+        "verb": "blocks",
+        "speak": [
+            {
+                "text": "{blocker}で{attacker}をブロック。"
+            },
+            {
+                "text": "お相手は{blocker}で{attacker}をブロック。"
+            },
+            {
+                "text": "{blocker}で{attacker}をブロック。"
+            }
+        ]
+    },
+    {
+        "verb": "casts",
+        "speak": [
+            {
+                "text": "{card}をキャスト。"
+            },
+            {
+                "text": "お相手は{card}をキャスト。"
+            },
+            {
+                "text": "{card}をキャスト。"
+            }
+        ]
+    },
+    {
+        "verb": "draws",
+        "speak": [
+            {
+                "text": "{card}をドロー。"
+            },
+            {
+                "text": ""
+            },
+            {
+                "text": "ドロー。"
+            }
+        ]
+    },
+    {
+        "verb": "exiles",
+        "speak": [
+            {
+                "text": "{card}を追放。"
+            },
+            {
+                "text": "お相手の{card}を追放。"
+            },
+            {
+                "text": "{card}を追放。"
+            }
+        ]
+    },
+    {
+        "verb": "plays",
+        "speak": [
+            {
+                "text": "{card}をプレイ。"
+            },
+            {
+                "text": "お相手は{card}をプレイ。"
+            },
+            {
+                "text": "{card}をプレイ。"
+            }
+        ]
+    },
+    {
+        "verb": "resolves",
+        "speak": [
+            {
+                "text": ""
+            },
+            {
+                "text": ""
+            },
+            {
+                "text": ""
+            }
+        ]
+    },
+    {
+        "verb": "sent to graveyard",
+        "reason": [
+            "(Destroy)",
+            "(SBA_Damage)",
+            "(SBA_ZeroToughness)"
+        ],
+        "speak": [
+            {
+                "text": "{card}が死亡。"
+            },
+            {
+                "text": "お相手の{card}が死亡。"
+            },
+            {
+                "text": "{card}が死亡。"
+            }
+        ]
+    },
+    {
+        "verb": "sent to graveyard",
+        "reason": [
+            "(Conjure)"
+        ],
+        "speak": [
+            {
+                "text": "墓地に{card}を創出。"
+            },
+            {
+                "text": "お相手の墓地に{card}が創出。"
+            },
+            {
+                "text": "墓地に{card}を創出。"
+            }
+        ]
+    },
+    {
+        "verb": "sent to graveyard",
+        "reason": [
+            "(Discard)"
+        ],
+        "speak": [
+            {
+                "text": "{card}をディスカード。"
+            },
+            {
+                "text": "お相手は{card}をディスカード。"
+            },
+            {
+                "text": "{card}をディスカード。"
+            }
+        ]
+    },
+    {
+        "verb": "sent to graveyard",
+        "reason": [
+            "(Sacrifice)"
+        ],
+        "speak": [
+            "{card}を生け贄に。",
+            "お相手の{card}が生け贄に。",
+            "{card}を生け贄に。"
+        ]
+    },
+    {
+        "verb": "sent to graveyard",
+        "reason": [
+            "(SBA_UnattachedAura)"
+        ],
+        "speak": [
+            {
+                "text": "{card}が墓地に。"
+            },
+            {
+                "text": "お相手の{card}が墓地に。"
+            },
+            {
+                "text": "{card}が墓地に。"
+            }
+        ]
+    },
+    {
+        "verb": "sent to graveyard",
+        "reason": [
+            "(nil)"
+        ],
+        "speak": [
+            {
+                "text": ""
+            },
+            {
+                "text": ""
+            },
+            {
+                "text": ""
+            }
+        ]
+    },
+    {
+        "verb": "vs",
+        "speak": [
+            {
+                "text": "対戦よろしくお願いします。"
+            },
+            {
+                "text": "対戦よろしくお願いします。"
+            },
+            {
+                "text": "対戦よろしくお願いします。"
+            }
+        ]
+    },
+    {
+        "verb": "'s life total changed",
+        "life": "gain",
+        "speak": [
+            {
+                "text": "{life_diff}点回復して、ライフは{life_to}。"
+            },
+            {
+                "text": "{life_diff}点回復されて、お相手はライフは{life_to}。"
+            },
+            {
+                "text": "{life_diff}点回復して、ライフは{life_to}。"
+            }
+        ]
+    },
+    {
+        "verb": "'s life total changed",
+        "life": "lose",
+        "speak": [
+            {
+                "text": "{life_diff}点くらって、ライフは{life_to}。"
+            },
+            {
+                "text": "{life_diff}点あたえて、お相手のライフは{life_to}。"
+            },
+            {
+                "text": "{life_diff}点くらって、ライフは{life_to}。"
+            }
+        ]
+    },
+    {
+        "verb": "'s starting hand:",
+        "speak": [
+            {
+                "text": "マリガンチェック。"
+            },
+            {
+                "text": ""
+            },
+            {
+                "text": ""
+            }
+        ]
+    }
+]
