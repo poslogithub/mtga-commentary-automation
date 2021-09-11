@@ -155,7 +155,7 @@ if __name__ == "__main__":
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                 pass
         if not running:
-            ans = messagebox.askyesno(__file__, "mtgatracker_backendが起動していない可能性があります。\nはい: 再試行\nいいえ: 無視して続行")
+            ans = messagebox.askyesno(__file__, "mtgatracker_backend.exe プロセスが見つかりませんでした。\nmtgatracker_backendが起動していない可能性があります。\nはい: 再試行\nいいえ: 無視して続行")
             if ans == True:
                 pass
             elif ans == False:
@@ -174,7 +174,7 @@ if __name__ == "__main__":
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                 pass
         if not running:
-            ans = messagebox.askyesno(__file__, "AssistantSeikaが起動していない可能性があります。\nはい: 再試行\nいいえ: 無視して続行")
+            ans = messagebox.askyesno(__file__, "AssistantSeika.exe プロセスが見つかりませんでした。\nAssistantSeikaが起動していない可能性があります。\nはい: 再試行\nいいえ: 無視して続行")
             if ans == True:
                 pass
             elif ans == False:
@@ -190,7 +190,7 @@ if __name__ == "__main__":
             print("Get cids from AssistantSeika: OK")
             break
         else:
-            ans = messagebox.askyesno(__file__, "AssistantSeikaの話者一覧が空である可能性があります。\nはい: 再試行\nいいえ: 無視して続行")
+            ans = messagebox.askyesno(__file__, "SeikaSay2.exe -list の実行に失敗しました。\nAssistantSeikaの話者一覧が空である可能性があります。\nはい: 再試行\nいいえ: 無視して続行")
             if ans == True:
                 pass
             elif ans == False:
@@ -201,6 +201,8 @@ if __name__ == "__main__":
     print("hero_cid: {}".format(seikasay2.hero_cid))
     print("opponent_cid: {}".format(seikasay2.opponent_cid))
 
+    seikasay2.speak_config()
+    
     websocket.enableTrace(False)
     ws = websocket.WebSocketApp(url,
                               on_message = on_message,

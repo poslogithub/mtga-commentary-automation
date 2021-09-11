@@ -1,5 +1,5 @@
 {
     "SeikaSay2Path": "C:\\Program Files\\510product\\SeikaSay2\\SeikaSay2.exe",
-    "speakAlone": true,
-    "speakOpponentOnly": false,
+    "speakDuo": true,
+    "speakOpponentOnly": false
 }

@@ -1,5 +1,6 @@
 [
     {
+        "_description": "ゲーム終了時",
         "type": "game",
         "speak": [
             {
@@ -38,6 +39,7 @@
         ]
     },
     {
+        "_description": "ターン開始時",
         "type": "turn",
         "speak": [
             {
@@ -52,6 +54,7 @@
         ]
     },
     {
+        "_description": "攻撃クリーチャー指定時",
         "verb": "attacking",
         "speak": [
             {
@@ -66,6 +69,7 @@
         ]
     },
     {
+        "_description": "ブロッククリーチャー指定時",
         "verb": "blocks",
         "speak": [
             {
@@ -80,6 +84,7 @@
         ]
     },
     {
+        "_description": "呪文を唱えた時",
         "verb": "casts",
         "speak": [
             {
@@ -94,6 +99,7 @@
         ]
     },
     {
+        "_description": "カードを1枚引いた時",
         "verb": "draws",
         "speak": [
             {
@@ -108,6 +114,7 @@
         ]
     },
     {
+        "_description": "カードが追放された時",
         "verb": "exiles",
         "speak": [
             {
@@ -122,6 +129,7 @@
         ]
     },
     {
+        "_description": "土地をプレイした時",
         "verb": "plays",
         "speak": [
             {
@@ -136,6 +144,7 @@
         ]
     },
     {
+        "_description": "呪文か能力が解決した時",
         "verb": "resolves",
         "speak": [
             {
@@ -150,6 +159,7 @@
         ]
     },
     {
+        "_description": "クリーチャーが死亡した時かパーマネントが破壊された時",
         "verb": "sent to graveyard",
         "reason": [
             "(Destroy)",
@@ -169,6 +179,7 @@
         ]
     },
     {
+        "_description": "墓地にカードが創出された時",
         "verb": "sent to graveyard",
         "reason": [
             "(Conjure)"
@@ -186,6 +197,7 @@
         ]
     },
     {
+        "_description": "カードを1枚捨てた時",
         "verb": "sent to graveyard",
         "reason": [
             "(Discard)"
@@ -203,6 +215,7 @@
         ]
     },
     {
+        "_description": "パーマネントを生け贄に捧げた時",
         "verb": "sent to graveyard",
         "reason": [
             "(Sacrifice)"
@@ -214,6 +227,7 @@
         ]
     },
     {
+        "_description": "オーラが状況起因処理で墓地に置かれた時",
         "verb": "sent to graveyard",
         "reason": [
             "(SBA_UnattachedAura)"
@@ -231,6 +245,7 @@
         ]
     },
     {
+        "_description": "不明。呪文が立ち消えた時？",
         "verb": "sent to graveyard",
         "reason": [
             "(nil)"
@@ -248,20 +263,22 @@
         ]
     },
     {
+        "_description": "ゲーム開始時",
         "verb": "vs",
         "speak": [
             {
                 "text": "対戦よろしくお願いします。"
             },
             {
-                "text": "対戦よろしくお願いします。"
+                "text": ""
             },
             {
-                "text": "対戦よろしくお願いします。"
+                "text": ""
             }
         ]
     },
     {
+        "_description": "ライフが増えた時",
         "verb": "'s life total changed",
         "life": "gain",
         "speak": [
@@ -277,6 +294,7 @@
         ]
     },
     {
+        "_description": "ライフが減った時",
         "verb": "'s life total changed",
         "life": "lose",
         "speak": [
@@ -292,6 +310,7 @@
         ]
     },
     {
+        "_description": "マリガンチェック時",
         "verb": "'s starting hand:",
         "speak": [
             {
