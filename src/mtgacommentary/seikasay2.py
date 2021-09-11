@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import subprocess
 
 class SeikaSay2:
@@ -15,18 +16,6 @@ class SeikaSay2:
         self.hero_cid = config.get("heroCid", 0)
         self.opponent_cid = config.get("opponentCid", 0)
         # TODO: configでcid未指定時に話者一覧からcidを取得
-
-        hero_file = "config\\{}.json".format(self.hero_cid)
-        if not os.path.isfile(hero_file):
-            hero_file = "config\\defaultSpeaker.json"
-        with open(hero_file, 'r', encoding="utf_8_sig") as rf:
-            self.hero = json.load(rf)
-
-        opponent_file = "config\\{}.json".format(self.opponent_cid)
-        if not os.path.isfile(opponent_file):
-            opponent_file = "config\\defaultSpeaker.json"
-        with open(opponent_file, 'r', encoding="utf_8_sig") as rf:
-            self.opponent = json.load(rf)
 
     def speak(self, is_opponent=False, message_type="", verb="", attacker="", blocker="", card="", source="", reason="", life_from=0, life_to=0):
         life_diff = 0
@@ -82,6 +71,35 @@ class SeikaSay2:
         else:
             return ""
     
-    def list(self):
+    def cid_list(self):
+        rst = []
         cmd = "{} -list".format(self.seikasay2_path)
-        return subprocess.run(cmd)
+        try:
+            s = subprocess.check_output(cmd)
+            for line in s.splitlines():
+                if type(line) is bytes:
+                    line = line.decode("shift-jis")
+                line = line.strip()
+                print(line)
+                if re.search("^[0-9]", line):
+                    rst.append(line.split(" ")[0])
+        except subprocess.CalledProcessError:
+            return None
+        return rst
+
+    def set_cids(self, hero_cid, opponent_cid):
+        if self.hero_cid == 0:
+            self.hero_cid = hero_cid
+        hero_file = "config\\{}.json".format(self.hero_cid)
+        if not os.path.isfile(hero_file):
+            hero_file = "config\\defaultSpeaker.json"
+        with open(hero_file, 'r', encoding="utf_8_sig") as rf:
+            self.hero = json.load(rf)
+
+        if self.opponent_cid == 0:
+            self.opponent_cid = opponent_cid
+        opponent_file = "config\\{}.json".format(self.opponent_cid)
+        if not os.path.isfile(opponent_file):
+            opponent_file = "config\\defaultSpeaker.json"
+        with open(opponent_file, 'r', encoding="utf_8_sig") as rf:
+            self.opponent = json.load(rf)

@@ -6,7 +6,7 @@
         {
             "label": "PyInstaller",
             "type": "shell",
-            "command": "PyInstaller commentary_backend.spec",
+            "command": "PyInstaller commentary_backend.spec --noconfirm --clean",
             "problemMatcher": [],
             "group": {
                 "kind": "build",

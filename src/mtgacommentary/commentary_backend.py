@@ -11,7 +11,7 @@ from tkinter import Tk, messagebox
 import subprocess
 
 
-seikasey2 = SeikaSay2()
+seikasay2 = SeikaSay2()
 hero_screen_name = ""
 opponent_screen_name = ""
 
@@ -100,7 +100,7 @@ def on_message(ws, message):
             else:
                 logger.warning("debug: 不明なverb")
 
-        text = seikasey2.speak(is_opponent, message_type, verb, attacker, blocker, card, source, reason, life_from, life_to)
+        text = seikasay2.speak(is_opponent, message_type, verb, attacker, blocker, card, source, reason, life_from, life_to)
         if text:
             print(text)
             logger.info(text)
@@ -149,8 +149,8 @@ if __name__ == "__main__":
         for proc in psutil.process_iter():
             try:
                 if proc.exe().endswith("mtgatracker_backend.exe"):
-                    running = True
                     print("mtgatracker_backend.exe running check: OK")
+                    running = True
                     break
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                 pass
@@ -167,19 +167,39 @@ if __name__ == "__main__":
     while not running:
         for proc in psutil.process_iter():
             try:
-                if proc.exe().endswith("AssistantSeika.exe") and seikasey2.list().returncode == 0:
-                    running = True
+                if proc.exe().endswith("AssistantSeika.exe"):
                     print("AssistantSeika running check: OK")
+                    running = True
                     break
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                 pass
         if not running:
-            ans = messagebox.askyesno(__file__, "AssistantSeikaが起動していないか、話者一覧が取得できていない可能性があります。\nはい: 再試行\nいいえ: 無視して続行")
+            ans = messagebox.askyesno(__file__, "AssistantSeikaが起動していない可能性があります。\nはい: 再試行\nいいえ: 無視して続行")
             if ans == True:
                 pass
             elif ans == False:
-                print("mtgatracker_backend.exe running check: NG")
+                print("AssistantSeika running check: NG")
                 running = True
+
+    print("Get cids from AssistantSeika")
+    running = False
+    while not running:
+        cids = seikasay2.cid_list()
+        if cids:
+            running = True
+            print("Get cids from AssistantSeika: OK")
+            break
+        else:
+            ans = messagebox.askyesno(__file__, "AssistantSeikaの話者一覧が空である可能性があります。\nはい: 再試行\nいいえ: 無視して続行")
+            if ans == True:
+                pass
+            elif ans == False:
+                print("Get cids from AssistantSeika: NG")
+                running = True
+    
+    seikasay2.set_cids(cids[0], cids[1] if len(cids) >= 2 else cids[0])
+    print("hero_cid: {}".format(seikasay2.hero_cid))
+    print("opponent_cid: {}".format(seikasay2.opponent_cid))
 
     websocket.enableTrace(False)
     ws = websocket.WebSocketApp(url,
