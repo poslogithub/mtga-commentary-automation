@@ -2,13 +2,14 @@ import _thread
 import json
 import re
 import sys
-import time
 import websocket
 from seikasay2 import SeikaSay2
-from logging import getLogger
+import logging
+from logging import getLogger, StreamHandler
+import logging.handlers
+import os
 import psutil
 from tkinter import Tk, messagebox
-import subprocess
 
 
 seikasay2 = SeikaSay2()
@@ -35,7 +36,7 @@ def on_message(ws, message):
         life_to = 0
 
         if len(text_array) == 0:
-            logger.warning("debug: 不明なtext_array")
+            logger.warning("warning: 長さ0のtext_array")
         elif len(text_array) == 1:
             if text_array[0].get("type") == "game":
                 message_type = text_array[0].get("type")
@@ -44,7 +45,7 @@ def on_message(ws, message):
                     is_opponent = True
                 message_type = text_array[0].get("type")
             else:
-                logger.warning("debug: 不明なtype")
+                logger.warning("warning: 不明なtype: {}".format(text_array[0].get("type")))
         else:
             verb = text_array[1].strip()
             if verb == "'s":    # "'s"が入った場合はガチャガチャする
@@ -57,7 +58,7 @@ def on_message(ws, message):
                     text_array = text_array[4:]
                 verb = text_array[1].strip()
                 if verb == "'s":
-                    logger.warning("debug: 不明なverb")
+                    logger.warning("warning: 不明なtext_array: {}".format(text_array))
 
             if verb == "attacking":
                 is_opponent = True if text_array[0].get("type") == "opponent" else False
@@ -86,8 +87,8 @@ def on_message(ws, message):
                 is_opponent = True if text_array[0].get("type") == "opponent" else False
                 card = re.sub("（.+?）", "", text_array[0].get("text"))
                 reason = text_array[2]
-                if reason not in ["(Conjure)", "(Destroy)", "(Discard)", "(Sacrifice)", "(SBA_Damage)", "(SBA_ZeroToughness)", "(SBA_UnattachedAura)", "(nil)"]:
-                    logger.warning("debug: 不明なreason")
+                if reason not in ["(Conjure)", "(Destroy)", "(Discard)", "(Mill)", "(Sacrifice)", "(SBA_Damage)", "(SBA_ZeroToughness)", "(SBA_UnattachedAura)", "(nil)"]:
+                    logger.warning("warning: 不明なreason: {}".format(reason))
             elif verb == "vs":
                 hero_screen_name = text_array[0].get("text")
                 opponent_screen_name = text_array[2].get("text")
@@ -98,58 +99,69 @@ def on_message(ws, message):
             elif verb == "'s starting hand:":
                 pass
             else:
-                logger.warning("debug: 不明なverb")
+                logger.warning("warning: 不明なverb: ".format(verb))
 
         text = seikasay2.speak(is_opponent, message_type, verb, attacker, blocker, card, source, reason, life_from, life_to)
         if text:
-            print(text)
             logger.info(text)
 
 def on_error(ws, error):
-    print(error)
-    logger.error("debug: called on_error")
+    logger.error("error: called on_error")
     logger.error(error)
 
 def on_close(ws):
-    print("### closed ###")
-    logger.info("### closed ###")
+    logger.info("### websocket is closed ###")
 
 def on_open(ws):
     def run(*args):
-        print("### websocket is opened ###")
-        logger.info("debug: websocket is opened")
+        logger.info("### websocket is opened ###")
 
         while(True):
             line = sys.stdin.readline()
             if line != "":
-                print("sending value is " + line)
-                logger.info("debug: sending value is " + line)
+                logger.debug("debug: sending value is " + line)
                 ws.send(line)
 
     _thread.start_new_thread(run, ())
 
 
 if __name__ == "__main__":
+    log_file = "commentary_backend.log"
     logger = getLogger("commentary_backend")
+    logger.setLevel(logging.DEBUG)
+    stream_handler = StreamHandler(sys.stdout)
+    stream_handler.setLevel(logging.INFO)
+    must_rollover = False
+    if os.path.exists(log_file):  # check before creating the handler, which creates the file
+        must_rollover = True
+    rotating_handler = logging.handlers.RotatingFileHandler(log_file, backupCount=10)
+    rotating_handler.setLevel(logging.DEBUG)
+    if must_rollover:
+        try:
+            rotating_handler.doRollover()
+        except PermissionError:
+            print("警告: {} のローテーションに失敗しました。ログファイルが出力されません。".format(log_file))
+    logger.addHandler(stream_handler)
+    logger.addHandler(rotating_handler)
+
     param = sys.argv
 
     url = "ws://localhost:8089"
 
     if len(param) == 2:
         url = param[1]
-        print("param[1] is " + param[1])
-        logger.info("debug: param[1] is " + param[1])
+        logger.info("param[1] is " + param[1])
 
     root = Tk()
     root.withdraw()
 
-    print("mtgatracker_backend.exe running check")
+    logger.info("mtgatracker_backend.exe running check")
     running = False
     while not running:
         for proc in psutil.process_iter():
             try:
                 if proc.exe().endswith("mtgatracker_backend.exe"):
-                    print("mtgatracker_backend.exe running check: OK")
+                    logger.info("mtgatracker_backend.exe running check: OK")
                     running = True
                     break
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
@@ -159,16 +171,16 @@ if __name__ == "__main__":
             if ans == True:
                 pass
             elif ans == False:
-                print("mtgatracker_backend.exe running check: NG")
+                logger.infoint("mtgatracker_backend.exe running check: NG")
                 running = True
 
-    print("AssistantSeika running check")
+    logger.info("AssistantSeika running check")
     running = False
     while not running:
         for proc in psutil.process_iter():
             try:
                 if proc.exe().endswith("AssistantSeika.exe"):
-                    print("AssistantSeika running check: OK")
+                    logger.info("AssistantSeika running check: OK")
                     running = True
                     break
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
@@ -178,28 +190,28 @@ if __name__ == "__main__":
             if ans == True:
                 pass
             elif ans == False:
-                print("AssistantSeika running check: NG")
+                logger.info("AssistantSeika running check: NG")
                 running = True
 
-    print("Get cids from AssistantSeika")
+    logger.info("Get cids from AssistantSeika")
     running = False
     while not running:
         cids = seikasay2.cid_list()
         if cids:
             running = True
-            print("Get cids from AssistantSeika: OK")
+            logger.info("Get cids from AssistantSeika: OK")
             break
         else:
             ans = messagebox.askyesno(__file__, "SeikaSay2.exe -list の実行に失敗しました。\nAssistantSeikaの話者一覧が空である可能性があります。\nはい: 再試行\nいいえ: 無視して続行")
             if ans == True:
                 pass
             elif ans == False:
-                print("Get cids from AssistantSeika: NG")
+                logger.info("Get cids from AssistantSeika: NG")
                 running = True
     
     seikasay2.set_cids(cids[0], cids[1] if len(cids) >= 2 else cids[0])
-    print("hero_cid: {}".format(seikasay2.hero_cid))
-    print("opponent_cid: {}".format(seikasay2.opponent_cid))
+    logger.info("hero_cid: {}".format(seikasay2.hero_cid))
+    logger.info("opponent_cid: {}".format(seikasay2.opponent_cid))
 
     seikasay2.speak_config()
     

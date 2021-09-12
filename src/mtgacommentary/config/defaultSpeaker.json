@@ -118,13 +118,13 @@
         "verb": "exiles",
         "speak": [
             {
-                "text": "{card}を追放。"
+                "text": "{card}が追放。"
             },
             {
-                "text": "お相手の{card}を追放。"
+                "text": "お相手の{card}が追放。"
             },
             {
-                "text": "{card}を追放。"
+                "text": "{card}が追放。"
             }
         ]
     },
@@ -155,26 +155,6 @@
             },
             {
                 "text": ""
-            }
-        ]
-    },
-    {
-        "_description": "クリーチャーが死亡した時かパーマネントが破壊された時",
-        "verb": "sent to graveyard",
-        "reason": [
-            "(Destroy)",
-            "(SBA_Damage)",
-            "(SBA_ZeroToughness)"
-        ],
-        "speak": [
-            {
-                "text": "{card}が死亡。"
-            },
-            {
-                "text": "お相手の{card}が死亡。"
-            },
-            {
-                "text": "{card}が死亡。"
             }
         ]
     },
@@ -221,15 +201,25 @@
             "(Sacrifice)"
         ],
         "speak": [
-            "{card}を生け贄に。",
-            "お相手の{card}が生け贄に。",
-            "{card}を生け贄に。"
+            {
+                "text": "{card}を生け贄に。"
+            },
+            {
+                "text": "お相手の{card}が生け贄に。"
+            },
+            {
+                "text": "{card}を生け贄に。"
+            }
         ]
     },
     {
-        "_description": "オーラが状況起因処理で墓地に置かれた時",
+        "_description": "パーマネントが破壊されたか、ライブラリが切削されたか、オーラが状況起因処理で墓地に置かれた時",
         "verb": "sent to graveyard",
         "reason": [
+            "(Destroy)",
+            "(Mill)",
+            "(SBA_Damage)",
+            "(SBA_ZeroToughness)",
             "(SBA_UnattachedAura)"
         ],
         "speak": [
