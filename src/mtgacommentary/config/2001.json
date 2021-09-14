@@ -1,7 +1,7 @@
 [
     {
-        "_speaker": "Default speaker",
-        "_product": "Default product"
+        "_speaker": "琴葉 茜",
+        "_product": "VOICEROID2"
     },
     {
         "_description": "SeikaSay2のオプション指定",
@@ -35,13 +35,13 @@
         "type": "turn",
         "speak": [
             {
-                "text": "こちらのターン。"
+                "text": "うちのターン。"
             },
             {
                 "text": "お相手のターン。"
             },
             {
-                "text": "こちらのターン。"
+                "text": "うちのターン。"
             }
         ]
     },
@@ -80,13 +80,13 @@
         "verb": "casts",
         "speak": [
             {
-                "text": "{card}をキャスト。"
+                "text": "{card}を唱えるで。"
             },
             {
-                "text": "お相手は{card}をキャスト。"
+                "text": "お相手は{card}を唱えたで。"
             },
             {
-                "text": "{card}をキャスト。"
+                "text": "{card}を唱えるで。"
             }
         ]
     },
@@ -95,7 +95,7 @@
         "verb": "draws",
         "speak": [
             {
-                "text": "{card}をドロー。"
+                "text": "{card}を引いたで。"
             },
             {
                 "text": ""
@@ -125,13 +125,13 @@
         "verb": "plays",
         "speak": [
             {
-                "text": "{card}をプレイ。"
+                "text": "{card}を出すで。"
             },
             {
-                "text": "お相手は{card}をプレイ。"
+                "text": "お相手は{card}を出したで。"
             },
             {
-                "text": "{card}をプレイ。"
+                "text": "{card}を出すで。"
             }
         ]
     },
@@ -176,13 +176,13 @@
         ],
         "speak": [
             {
-                "text": "{card}をディスカード。"
+                "text": "{card}を捨てるで。"
             },
             {
-                "text": "お相手は{card}をディスカード。"
+                "text": "お相手は{card}を捨てたで。"
             },
             {
-                "text": "{card}をディスカード。"
+                "text": "{card}を捨てるで。"
             }
         ]
     },
@@ -194,13 +194,13 @@
         ],
         "speak": [
             {
-                "text": "{card}を生け贄に。"
+                "text": "{card}をサクるで。"
             },
             {
-                "text": "お相手の{card}が生け贄に。"
+                "text": "お相手は{card}をサクったで。"
             },
             {
-                "text": "{card}を生け贄に。"
+                "text": "{card}をサクるで。"
             }
         ]
     },
@@ -249,13 +249,13 @@
         ],
         "speak": [
             {
-                "text": "{card}が死亡。"
+                "text": "{card}が死んだで。"
             },
             {
-                "text": "お相手の{card}が死亡。"
+                "text": "お相手の{card}が死んだで。"
             },
             {
-                "text": "{card}が死亡。"
+                "text": "{card}が死んだで。"
             }
         ]
     },

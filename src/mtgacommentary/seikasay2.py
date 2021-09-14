@@ -54,18 +54,33 @@ class SeikaSay2:
                         life_diff = abs(life_from - life_to)
                     speak_obj = obj.get("speak")[speak_idx]
                     break
+        
+        speak_param_obj = None
+        for obj in speaker:
+            if obj.get("type") == "SeikaSay2":
+                speak_param_obj = obj
+                break
+        if speak_param_obj and speak_obj:
+            speak_param_obj["volume"] = speak_obj.get("volume") if speak_obj.get("volume") else speak_param_obj.get("volume")
+            speak_param_obj["speed"] = speak_obj.get("speed") if speak_obj.get("speed") else speak_param_obj.get("speed")
+            speak_param_obj["pitch"] = speak_obj.get("pitch") if speak_obj.get("pitch") else speak_param_obj.get("pitch")
+            speak_param_obj["alpha"] = speak_obj.get("alpha") if speak_obj.get("alpha") else speak_param_obj.get("alpha")
+            speak_param_obj["intonation"] = speak_obj.get("intonation") if speak_obj.get("intonation") else speak_param_obj.get("intonation")
+            speak_param_obj["emotionEP"] = speak_obj.get("emotionEP") if speak_obj.get("emotionEP") else speak_param_obj.get("emotionEP")
+            speak_param_obj["emotionP"] = speak_obj.get("emotionP") if speak_obj.get("emotionP") else speak_param_obj.get("emotionP")
+            speak_param_obj["overBanner"] = speak_obj.get("overBanner") if speak_obj.get("overBanner") else speak_param_obj.get("overBanner")
 
         if speak_obj and speak_obj.get("text"):
+            cmd += " -volume {}".format(speak_param_obj.get("volume")) if speak_param_obj.get("volume") else ""
+            cmd += " -speed {}".format(speak_param_obj.get("speed")) if speak_param_obj.get("speed") else ""
+            cmd += " -pitch {}".format(speak_param_obj.get("pitch")) if speak_param_obj.get("pitch") else ""
+            cmd += " -alpha {}".format(speak_param_obj.get("alpha")) if speak_param_obj.get("alpha") else ""
+            cmd += " -intonation {}".format(speak_param_obj.get("intonation")) if speak_param_obj.get("intonation") else ""
+            if speak_param_obj.get("emotionEP") and speak_param_obj.get("emotionP"):
+                cmd += " -emotion {} {}".format(speak_param_obj.get("emotionEP"), speak_param_obj.get("emotionP"))
+            cmd += " -ob" if speak_param_obj.get("overBanner") else ""
             text = speak_obj.get("text").replace(r"{attacker}", attacker).replace(r"{blocker}", blocker).replace(r"{card}", card).replace(r"{source}", source).replace(r"{life_from}", str(life_from)).replace(r"{life_to}", str(life_to)).replace(r"{life_diff}", str(life_diff))
             cmd += " -t \"{}\"".format(text)
-            cmd += " -volume {}".format(speak_obj.get("volume")) if speak_obj.get("volume") else ""
-            cmd += " -speed {}".format(speak_obj.get("speed")) if speak_obj.get("speed") else ""
-            cmd += " -pitch {}".format(speak_obj.get("pitch")) if speak_obj.get("pitch") else ""
-            cmd += " -alpha {}".format(speak_obj.get("alpha")) if speak_obj.get("alpha") else ""
-            cmd += " -intonation {}".format(speak_obj.get("intonation")) if speak_obj.get("intonation") else ""
-            if speak_obj.get("emotionEP") and speak_obj.get("emotionP"):
-                cmd += " -emotion {} {}".format(speak_obj.get("emotionEP"), speak_obj.get("emotionP"))
-            cmd += " -ob" if speak_obj.get("overBanner") else ""
             subprocess.run(cmd)
             return text
         else:

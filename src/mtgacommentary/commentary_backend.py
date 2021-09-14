@@ -60,6 +60,14 @@ def on_message(ws, message):
                 if verb == "'s":
                     logger.warning("warning: 不明なtext_array: {}".format(text_array))
 
+            if verb == ":":    # ":"が入った場合はガチャガチャする
+                source = text_array[0].get("text")
+                if len(text_array) >= 4:   # ex: "CARDNAME1 : SCREENNAME draws CARDNAME2"
+                    text_array = text_array[2:]
+                verb = text_array[1].strip()
+                if verb == ":":
+                    logger.warning("warning: 不明なtext_array: {}".format(text_array))
+
             if verb == "attacking":
                 is_opponent = True if text_array[0].get("type") == "opponent" else False
                 attacker = re.sub("（.+?）", "", text_array[0].get("text"))
