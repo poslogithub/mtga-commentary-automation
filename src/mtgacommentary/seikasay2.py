@@ -86,6 +86,22 @@ class SeikaSay2:
         else:
             return ""
     
+    def list(self):
+        speakers = {}
+        cmd = "{} -list".format(self.seikasay2_path)
+        try:
+            s = subprocess.check_output(cmd)
+            for line in s.splitlines():
+                if type(line) is bytes:
+                    line = line.decode("cp932")
+                line = line.strip()
+                print(line)
+                if re.search(r"^[0-9]", line):
+                    speakers[line.split(" ")[0]] = re.search(r" +.*$", line)[0].strip()
+        except subprocess.CalledProcessError:
+            return None
+        return speakers
+
     def cid_list(self):
         rst = []
         cmd = "{} -list".format(self.seikasay2_path)
@@ -101,7 +117,7 @@ class SeikaSay2:
         except subprocess.CalledProcessError:
             return None
         return rst
-
+        
     def set_cids(self, hero_cid, opponent_cid):
         if self.hero_cid == 0:
             self.hero_cid = hero_cid

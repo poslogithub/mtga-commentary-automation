@@ -80,13 +80,13 @@
         "verb": "casts",
         "speak": [
             {
-                "text": "{card}を唱えるよ。"
+                "text": "{card}をキャスト。"
             },
             {
-                "text": "お相手は{card}を唱えたよ。"
+                "text": "お相手は{card}をキャスト。"
             },
             {
-                "text": "{card}を唱えるよ。"
+                "text": "{card}をキャスト。"
             }
         ]
     },
@@ -95,7 +95,7 @@
         "verb": "draws",
         "speak": [
             {
-                "text": "{card}を引いたよ。"
+                "text": "{card}をドロー。"
             },
             {
                 "text": ""
@@ -125,13 +125,13 @@
         "verb": "plays",
         "speak": [
             {
-                "text": "{card}を出すよ。"
+                "text": "{card}をプレイ。"
             },
             {
-                "text": "お相手は{card}を出したよ。"
+                "text": "お相手は{card}をプレイ。"
             },
             {
-                "text": "{card}を出すよ。"
+                "text": "{card}をプレイ。"
             }
         ]
     },
@@ -176,13 +176,13 @@
         ],
         "speak": [
             {
-                "text": "{card}を捨てるよ。"
+                "text": "{card}をディスカード。"
             },
             {
-                "text": "お相手は{card}を捨てたよ。"
+                "text": "お相手は{card}をディスカード。"
             },
             {
-                "text": "{card}を捨てるよ。"
+                "text": "{card}をディスカード。"
             }
         ]
     },
@@ -194,13 +194,13 @@
         ],
         "speak": [
             {
-                "text": "{card}をサクるよ。"
+                "text": "{card}を生け贄に。"
             },
             {
-                "text": "お相手は{card}をサクったよ。"
+                "text": "お相手は{card}を生け贄に。"
             },
             {
-                "text": "{card}をサクるよ。"
+                "text": "{card}を生け贄に。"
             }
         ]
     },
@@ -249,13 +249,13 @@
         ],
         "speak": [
             {
-                "text": "{card}が死んだよ。"
+                "text": "{card}が死亡。"
             },
             {
-                "text": "お相手の{card}が死んだよ。"
+                "text": "お相手の{card}が死亡。"
             },
             {
-                "text": "{card}が死んだよ。"
+                "text": "{card}が死亡。"
             }
         ]
     },

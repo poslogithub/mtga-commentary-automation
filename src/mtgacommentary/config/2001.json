@@ -316,13 +316,13 @@
         "life": "gain",
         "speak": [
             {
-                "text": "{life_diff}点回復して、ライフは{life_to}。"
+                "text": "{life_diff}点回復したで。"
             },
             {
-                "text": "{life_diff}点回復されて、お相手はライフは{life_to}。"
+                "text": "{life_diff}点回復されたで。"
             },
             {
-                "text": "{life_diff}点回復して、ライフは{life_to}。"
+                "text": "{life_diff}点回復したで。"
             }
         ]
     },
@@ -332,13 +332,13 @@
         "life": "lose",
         "speak": [
             {
-                "text": "{life_diff}点くらって、ライフは{life_to}。"
+                "text": "痛い。"
             },
             {
-                "text": "{life_diff}点あたえて、お相手のライフは{life_to}。"
+                "text": "{life_diff}点あたえたで。"
             },
             {
-                "text": "{life_diff}点くらって、ライフは{life_to}。"
+                "text": "痛い。"
             }
         ]
     },

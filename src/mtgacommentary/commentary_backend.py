@@ -9,7 +9,8 @@ from logging import getLogger, StreamHandler
 import logging.handlers
 import os
 import psutil
-from tkinter import Tk, messagebox
+import tkinter
+from tkinter import Tk, messagebox, ttk
 
 
 seikasay2 = SeikaSay2()
@@ -160,9 +161,6 @@ if __name__ == "__main__":
         url = param[1]
         logger.info("param[1] is " + param[1])
 
-    root = Tk()
-    root.withdraw()
-
     logger.info("mtgatracker_backend.exe running check")
     running = False
     while not running:
@@ -179,7 +177,7 @@ if __name__ == "__main__":
             if ans == True:
                 pass
             elif ans == False:
-                logger.infoint("mtgatracker_backend.exe running check: NG")
+                logger.info("mtgatracker_backend.exe running check: NG")
                 running = True
 
     logger.info("AssistantSeika running check")
@@ -204,8 +202,8 @@ if __name__ == "__main__":
     logger.info("Get cids from AssistantSeika")
     running = False
     while not running:
-        cids = seikasay2.cid_list()
-        if cids:
+        speakers = seikasay2.list()
+        if speakers:
             running = True
             logger.info("Get cids from AssistantSeika: OK")
             break
@@ -215,11 +213,39 @@ if __name__ == "__main__":
                 pass
             elif ans == False:
                 logger.info("Get cids from AssistantSeika: NG")
+                speakers = {}
                 running = True
     
-    seikasay2.set_cids(cids[0], cids[1] if len(cids) >= 2 else cids[0])
-    logger.info("hero_cid: {}".format(seikasay2.hero_cid))
-    logger.info("opponent_cid: {}".format(seikasay2.opponent_cid))
+    speaker_list = sorted(speakers.items())
+    seikasay2.set_cids(speaker_list[0][0], speaker_list[1][0] if len(speaker_list) >= 2 else speaker_list[0][0])
+    logger.info("話者1: {} {}".format(seikasay2.hero_cid, speakers[seikasay2.hero_cid]))
+    logger.info("話者2: {} {}".format(seikasay2.opponent_cid, speakers[seikasay2.opponent_cid]))
+
+    config_window = Tk()
+    config_window.title("MTGA自動実況ツール")
+    config_window.geometry("640x480")
+    frame = ttk.Frame(config_window)
+    frame.grid(column=0, row=0, sticky=tkinter.NSEW, padx=5, pady=10)
+    label_seikasay2_path = ttk.Label(frame, text="SeikaSay2のパス: {}".format(seikasay2.seikasay2_path))
+    label_seikasay2_path.grid(row=0, column=0)
+    label_speaker1 = ttk.Label(frame, text="話者1: ")
+    label_speaker1.grid(row=1, column=0)
+    #combobox_speaker1 = ttk.Combobox(frame, len(speakers))
+    #combobox_speaker1.grid(row=1, column=1)
+    label_speaker2 = ttk.Label(frame, text="話者2: ")
+    label_speaker2.grid(row=2, column=0)
+    #combobox_speaker2 = ttk.Combobox(frame, len(speakers))
+    #combobox_speaker2.grid(row=2, column=1)
+    label_hero_commentary_type = ttk.Label(frame, text="自分のアクション: ")
+    label_hero_commentary_type.grid(row=3, column=0)
+    #combobox_hero_commentary_type = ttk.Combobox(frame, 2)
+    #combobox_hero_commentary_type.grid(row=3, column=1)
+    label_opponent_commentary_type = ttk.Label(frame, text="対戦相手のアクション: ")
+    label_opponent_commentary_type.grid(row=4, column=0)
+    #combobox_opponent_commentary_type = ttk.Combobox(frame, 3)
+    #combobox_opponent_commentary_type.grid(row=4, column=1)
+    config_window.mainloop()
+    # config_window.withdraw()
 
     seikasay2.speak_config()
     
