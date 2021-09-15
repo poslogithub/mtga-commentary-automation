@@ -87,7 +87,8 @@ class SeikaSay2:
             return ""
     
     def list(self):
-        speakers = {}
+        cids = []
+        speakers = []
         cmd = "{} -list".format(self.seikasay2_path)
         try:
             s = subprocess.check_output(cmd)
@@ -97,10 +98,11 @@ class SeikaSay2:
                 line = line.strip()
                 print(line)
                 if re.search(r"^[0-9]", line):
-                    speakers[line.split(" ")[0]] = re.search(r" +.*$", line)[0].strip()
+                    cids.append(line.split(" ")[0])
+                    speakers.append(line)
         except subprocess.CalledProcessError:
             return None
-        return speakers
+        return cids, speakers
 
     def cid_list(self):
         rst = []
