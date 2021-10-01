@@ -83,7 +83,7 @@
                 "text": "{card}を唱えるで。"
             },
             {
-                "text": "お相手は{card}を唱えたで。"
+                "text": "お相手が{card}を唱えたで。"
             },
             {
                 "text": "{card}を唱えるで。"
@@ -187,24 +187,6 @@
         ]
     },
     {
-        "_description": "パーマネントを生け贄に捧げた時",
-        "verb": "sent to graveyard",
-        "reason": [
-            "(Sacrifice)"
-        ],
-        "speak": [
-            {
-                "text": "{card}をサクるで。"
-            },
-            {
-                "text": "お相手は{card}をサクったで。"
-            },
-            {
-                "text": "{card}をサクるで。"
-            }
-        ]
-    },
-    {
         "_description": "パーマネントが破壊された時",
         "verb": "sent to graveyard",
         "reason": [
@@ -241,10 +223,47 @@
         ]
     },
     {
+        "_description": "効果により墓地にカードを置いた時",
+        "verb": "sent to graveyard",
+        "reason": [
+            "(Put)"
+        ],
+        "speak": [
+            {
+                "text": ""
+            },
+            {
+                "text": ""
+            },
+            {
+                "text": ""
+            }
+        ]
+    },
+    {
+        "_description": "パーマネントを生け贄に捧げた時",
+        "verb": "sent to graveyard",
+        "reason": [
+            "(Sacrifice)"
+        ],
+        "speak": [
+            {
+                "text": "{card}をサクるで。"
+            },
+            {
+                "text": "お相手は{card}をサクったで。"
+            },
+            {
+                "text": "{card}をサクるで。"
+            }
+        ]
+    },
+    {
         "_description": "クリーチャーが死亡した時",
         "verb": "sent to graveyard",
         "reason": [
             "(SBA_Damage)",
+            "(SBA_Deathtouch)",
             "(SBA_ZeroToughness)"
         ],
         "speak": [

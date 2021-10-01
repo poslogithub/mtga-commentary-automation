@@ -113,3 +113,7 @@ dmypy.json
 # Pyre type checker
 .pyre/
 src/mtgacommentary/commentary_backend_log.json
+src/mtgacommentary/commentary_backend.log*
+src/mtgacommentary/SeikaSay2.exe
+src/mtgacommentary/tkinter_test.py
+src/mtgacommentary/config/_config.json

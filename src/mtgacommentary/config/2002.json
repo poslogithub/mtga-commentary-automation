@@ -241,10 +241,29 @@
         ]
     },
     {
+        "_description": "効果により墓地にカードを置いた時",
+        "verb": "sent to graveyard",
+        "reason": [
+            "(Put)"
+        ],
+        "speak": [
+            {
+                "text": ""
+            },
+            {
+                "text": ""
+            },
+            {
+                "text": ""
+            }
+        ]
+    },
+    {
         "_description": "クリーチャーが死亡した時",
         "verb": "sent to graveyard",
         "reason": [
             "(SBA_Damage)",
+            "(SBA_Deathtouch)",
             "(SBA_ZeroToughness)"
         ],
         "speak": [
