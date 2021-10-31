@@ -3,15 +3,17 @@ import json
 import logging
 import logging.handlers
 import os
-import psutil
 import re
 import sys
 import tkinter
-import websocket
-from seikasay2 import SeikaSay2
 from tkinter import filedialog, messagebox, ttk
+from tkinter.scrolledtext import ScrolledText
+import psutil
+import websocket
 
-class Key():
+from seikasay2 import SeikaSay2
+
+class Key:
     # message from mtgatracker_backend
     GAME_HISTORY_EVENT = "game_history_event"
     TYPE = "type"
@@ -56,7 +58,7 @@ class Key():
     EMOTION_P = "emotionP"
     OVER_BANNER = "overBanner"
 
-class Value():
+class Value:
     # message from mtgatracker_backend
     GAME = "game"
     TURN = "turn"
@@ -73,7 +75,7 @@ class Value():
     GAIN = "gain"
     LOSE = "lose"
 
-class Verb():
+class Verb:
     # message from mtgatracker_backend
     ATTAKING = "attacking"
     BLOCKS = "blocks"
@@ -87,7 +89,7 @@ class Verb():
     STARTING_HAND = "'s starting hand:"
     VS = "vs"
 
-class Reason():
+class Reason:
     # message from mtgatracker_backend
     CONJURE = "(Conjure)"
     DESTROY = "(Destroy)"
@@ -101,16 +103,21 @@ class Reason():
     SBA_UNATTACHED_AURA = "(SBA_UnattachedAura)"
     NIL = "(nil)"
 
-class ProcessName():
+class ProcessName:
     ASSISTANT_SEIKA = "AssistantSeika.exe"
     MTGATRACKER_BACKEND = "mtgatracker_backend.exe"
     SEIKA_SAY2 = "SeikaSay2.exe"
 
-class CommentaryBackend:
-    def __init__(self):
+class CommentaryBackend(tkinter.Frame):
+    def __init__(self, master=None):
+        super().__init__(master)
+
+        # 定数
         self.CONFIG_FILE = "config\\config.json"
         self.DEFAULT_SPEAKER_FILE = "config\\defaultSpeaker.json"
         self.LOG_FILE = os.path.basename(__file__).split(".")[0]+".log"
+
+        # 変数
         self.config = {
             Key.SEIKA_SAY2_PATH : ".\\"+ProcessName.SEIKA_SAY2,
             Key.SPEAKER1 : {
@@ -134,6 +141,14 @@ class CommentaryBackend:
         self.HERO_COMMENTARY_TYPES = ["話者1が一人称で実況する", "実況しない"]
         self.OPPONENT_COMMENTARY_TYPES = ["話者1が三人称で実況する", "話者2が一人称で実況する", "実況しない"]
 
+        # GUI
+        self.master.title("MTGA自動実況ツール")
+        self.master.geometry("640x480")
+        self.master_frame = ttk.Frame(self.master)
+        self.master_text = ScrolledText(self.master_frame)
+        self.master_text.pack()
+
+        # logger
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.DEBUG)
         stream_handler = logging.StreamHandler(sys.stdout)
@@ -151,20 +166,27 @@ class CommentaryBackend:
         self.logger.addHandler(stream_handler)
         self.logger.addHandler(rotating_handler)
 
+        # load config
         self.logger.info("Loading {}".format(self.CONFIG_FILE))
         if self.load_config():
             self.logger.info("Loading {}: OK".format(self.CONFIG_FILE))
         else:
             self.logger.info("Loading {}: NG".format(self.CONFIG_FILE))
         self.seikasay2 = SeikaSay2(self.config.get(Key.SEIKA_SAY2_PATH))
+
+    def start_ws_client(self):
+        import threading
+        t = threading.Thread(target=self.connect_to_socket)
+        t.start()        
+
+    def connect_to_socket(self):
         websocket.enableTrace(False)
         self.ws = websocket.WebSocketApp(self.config.get(Key.MTGATRACKER_BACKEND_URL),
             on_open = self.on_open,
             on_message = self.on_message,
             on_error = self.on_error,
             on_close = self.on_close)
-        self.window = tkinter.Tk()
-        self.window.withdraw()
+        self.ws.run_forever()
 
     def load_config(self, config_file=None):
         if not config_file:
@@ -182,49 +204,53 @@ class CommentaryBackend:
     def open_config_window(self):
         speaker1_index = self.cids.index(self.config.get(Key.SPEAKER1).get(Key.CID))
         speaker2_index = self.cids.index(self.config.get(Key.SPEAKER2).get(Key.CID))
-
-        self.window.title("MTGA自動実況ツール")
-        self.window.geometry("480x240")
-        self.window.deiconify()
-        self.frame = ttk.Frame(self.window)
-        self.frame.grid(column=0, row=0, sticky=tkinter.NSEW, padx=5, pady=10)
+        self.logger.debug("open_config_window")
+        self.config_window = tkinter.Toplevel(self)
+        self.config_window.title("MTGA自動実況ツール")
+        self.config_window.geometry("480x240")
+        self.config_window.deiconify()  # 可視化する
+        self.config_window.grab_set()   # モーダルにする
+        self.config_window.focus_set()  # フォーカスを新しいウィンドウをへ移す
+        self.config_window.transient(self.master)   # タスクバーに表示しない
+        self.config_frame = ttk.Frame(self.config_window)
+        self.config_frame.grid(column=0, row=0, sticky=tkinter.NSEW, padx=5, pady=10)
         self.sv_seikasay2_path = tkinter.StringVar()
         self.sv_seikasay2_path.set(self.config.get(Key.SEIKA_SAY2_PATH))
         self.sv_speaker1 = tkinter.StringVar()
         self.sv_speaker2 = tkinter.StringVar()
         self.sv_hero_commentary_type = tkinter.StringVar()
         self.sv_opponent_commentary_type = tkinter.StringVar()
-        label_seikasay2 = ttk.Label(self.frame, text="SeikaSay2のパス: ", anchor="w")
+        label_seikasay2 = ttk.Label(self.config_frame, text="SeikaSay2のパス: ", anchor="w")
         label_seikasay2.grid(row=0, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
-        entry_seikasay2 = ttk.Entry(self.frame, width=40, textvariable=self.sv_seikasay2_path)
+        entry_seikasay2 = ttk.Entry(self.config_frame, width=40, textvariable=self.sv_seikasay2_path)
         entry_seikasay2.grid(row=0, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
-        button_seikasay2 = tkinter.Button(self.frame, text="参照", command=self.config_window_seikasay2)
+        button_seikasay2 = tkinter.Button(self.config_frame, text="参照", command=self.config_window_seikasay2)
         button_seikasay2.grid(row=0, column=2, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
-        label_speaker1 = ttk.Label(self.frame, text="話者1: ", anchor="w")
+        label_speaker1 = ttk.Label(self.config_frame, text="話者1: ", anchor="w")
         label_speaker1.grid(row=1, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
-        combobox_speaker1 = ttk.Combobox(self.frame, width=40, values=self.speakers, textvariable=self.sv_speaker1, state="readonly")
+        combobox_speaker1 = ttk.Combobox(self.config_frame, width=40, values=self.speakers, textvariable=self.sv_speaker1, state="readonly")
         combobox_speaker1.current(speaker1_index)
         combobox_speaker1.grid(row=1, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
-        label_speaker2 = ttk.Label(self.frame, text="話者2: ", anchor="w")
+        label_speaker2 = ttk.Label(self.config_frame, text="話者2: ", anchor="w")
         label_speaker2.grid(row=2, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
-        combobox_speaker2 = ttk.Combobox(self.frame, width=40, values=self.speakers, textvariable=self.sv_speaker2, state="readonly")
+        combobox_speaker2 = ttk.Combobox(self.config_frame, width=40, values=self.speakers, textvariable=self.sv_speaker2, state="readonly")
         combobox_speaker2.current(speaker2_index)
         combobox_speaker2.grid(row=2, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
-        label_hero_commentary_type = ttk.Label(self.frame, text="自分のアクション: ", anchor="w")
+        label_hero_commentary_type = ttk.Label(self.config_frame, text="自分のアクション: ", anchor="w")
         label_hero_commentary_type.grid(row=3, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
-        combobox_hero_commentary_type = ttk.Combobox(self.frame, width=40, values=self.HERO_COMMENTARY_TYPES, textvariable=self.sv_hero_commentary_type, state="readonly")
+        combobox_hero_commentary_type = ttk.Combobox(self.config_frame, width=40, values=self.HERO_COMMENTARY_TYPES, textvariable=self.sv_hero_commentary_type, state="readonly")
         combobox_hero_commentary_type.current(0 if self.config.get(Key.HERO_COMMENTARY_TYPE) == Value.SPEAKER1 else 1)
         combobox_hero_commentary_type.grid(row=3, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
-        label_opponent_commentary_type = ttk.Label(self.frame, text="対戦相手のアクション: ", anchor="w")
+        label_opponent_commentary_type = ttk.Label(self.config_frame, text="対戦相手のアクション: ", anchor="w")
         label_opponent_commentary_type.grid(row=4, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
-        combobox_opponent_commentary_type = ttk.Combobox(self.frame, width=40, values=self.OPPONENT_COMMENTARY_TYPES, textvariable=self.sv_opponent_commentary_type, state="readonly")
+        combobox_opponent_commentary_type = ttk.Combobox(self.config_frame, width=40, values=self.OPPONENT_COMMENTARY_TYPES, textvariable=self.sv_opponent_commentary_type, state="readonly")
         combobox_opponent_commentary_type.current(0 if self.config.get(Key.OPPONENT_COMMENTARY_TYPE) == Value.SPEAKER1 else 1 if self.config.get(Key.OPPONENT_COMMENTARY_TYPE) == Value.SPEAKER2 else 2)
         combobox_opponent_commentary_type.grid(row=4, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
-        button_ok = tkinter.Button(self.frame, text="OK", command=self.config_window_ok)
+        button_ok = tkinter.Button(self.config_frame, text="OK", command=self.config_window_ok)
         button_ok.grid(row=5, column=1, sticky=tkinter.E, padx=5, pady=5)
-        button_cancel = tkinter.Button(self.frame, text="キャンセル", command=self.config_window_cancel)
+        button_cancel = tkinter.Button(self.config_frame, text="キャンセル", command=self.config_window_cancel)
         button_cancel.grid(row=5, column=2, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
-        self.window.mainloop()
+        self.wait_window(self.config_window)
     
     def config_window_seikasay2(self):
         path = filedialog.askopenfilename(filetype=[("実行ファイル","*.exe")], initialdir=os.getcwd())
@@ -244,12 +270,10 @@ class CommentaryBackend:
             else Value.SPEAKER2 if self.sv_opponent_commentary_type.get() == self.OPPONENT_COMMENTARY_TYPES[1] \
             else Value.NEVER
         self.save_config()
-        self.window.withdraw()
-        self.window.destroy()
+        self.config_window.destroy()
 
     def config_window_cancel(self):
-        self.window.withdraw()
-        self.window.destroy()
+        self.config_window.destroy()
 
     def load_speaker(self, cid):
         speaker_file = "config\\{}.json".format(cid)
@@ -281,8 +305,10 @@ class CommentaryBackend:
 
     def parse(self, blob):
         self.logger.debug(blob)
-        if blob and Key.GAME_HISTORY_EVENT in blob:
+        if blob:
             text_array = blob.get(Key.GAME_HISTORY_EVENT)
+            if not text_array:
+                return None
             parsed = {}
 
             if len(text_array) == 0:
@@ -479,15 +505,17 @@ class CommentaryBackend:
 
     def on_message(self, ws, message):
         parsed = self.parse(json.loads(message))
-        self.logger.debug(parsed)
-        cid = 0
-        text = ""
-        speak_param_obj = {}
         if parsed:
+            self.logger.debug(parsed)
+            cid = 0
+            text = ""
+            speak_param_obj = {}
             cid, text, speak_param_obj = self.gen_text(parsed)
-        if cid and text:
-            speaked_text = self.speak(cid, text, speak_param_obj)
-            self.logger.info(speaked_text)
+            if cid and text:
+                speaked_text = self.speak(cid, text, speak_param_obj)
+                if speaked_text:
+                    self.logger.info(speaked_text)
+                    self.master_text.insert("end", speaked_text)
 
     def on_error(self, ws, error):
         self.logger.error("error: called on_error")
@@ -499,6 +527,7 @@ class CommentaryBackend:
             self.logger.info("close_status_code: {}".format(close_status_code))
         if close_msg:
             self.logger.info("close message: {}".format(close_msg))
+
     def on_open(self, ws):
         def run(*args):
             self.logger.info("### websocket is opened ###")
@@ -583,22 +612,33 @@ class CommentaryBackend:
         if not self.config.get(Key.SPEAKER1).get(Key.CID):
             self.config[Key.SPEAKER1][Key.CID] = self.cids[0]
         if not self.config.get(Key.SPEAKER2).get(Key.CID):
-            self.config[Key.SPEAKER2][Key.CID] = \
-                self.cids[1] if len(self.cids) >= 2 \
-                else self.cids[0]
+            self.config[Key.SPEAKER2][Key.CID] = self.cids[0]
+        
+        if not self.config[Key.SPEAKER1][Key.CID] in self.cids:
+            self.config[Key.SPEAKER1][Key.CID] = self.cids[0]
+        if not self.config[Key.SPEAKER2][Key.CID] in self.cids:
+            self.config[Key.SPEAKER2][Key.CID] = self.cids[0]
+            if self.config[Key.OPPONENT_COMMENTARY_TYPE] == Value.SPEAKER2:
+                self.config[Key.OPPONENT_COMMENTARY_TYPE] = Value.SPEAKER1
 
         self.open_config_window()
         self.logger.info("話者1: {}".format(self.config.get(Key.SPEAKER1).get(Key.NAME)))
         self.logger.info("話者2: {}".format(self.config.get(Key.SPEAKER2).get(Key.NAME)))
         self.load_speakers()
         self.speak_config()
-        
-        try:
-            self.ws.run_forever()
-        except KeyboardInterrupt:
-            self.ws.close()
+
+        self.start_ws_client()
+
+        self.master.mainloop()
+        #try:
+        #    self.ws.run_forever()
+        #except KeyboardInterrupt:
+        #    self.ws.close()
+
+        self.ws.close()
 
 if __name__ == "__main__":
     #param = sys.argv
-    commentary_backend = CommentaryBackend()
+    root = tkinter.Tk()
+    commentary_backend = CommentaryBackend(master=root)
     commentary_backend.run()
