@@ -1,9 +1,5 @@
-import json
-import os
 import re
 import subprocess
-import tkinter
-from tkinter import Tk, ttk
 
 class SeikaSay2:
 
