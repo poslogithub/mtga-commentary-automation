@@ -1,12 +1,12 @@
 ﻿{
     "seikaSay2Path": ".\\SeikaSay2.exe",
     "speaker1": {
-        "cid": 2001,
-        "name": "2001 琴葉 茜  - VOICEROID2(32)"
+        "cid": "1707",
+        "name": "1707 東北きりたん EX  - VOICEROID+EX(32)"
     },
     "speaker2": {
-        "cid": 2002,
-        "name": "2002 琴葉 葵  - VOICEROID2(32)"
+        "cid": "2001",
+        "name": "2001 琴葉 茜  - VOICEROID2(32)"
     },
     "heroCommentaryType": "speaker1",
     "opponentCommentaryType": "speaker2",
