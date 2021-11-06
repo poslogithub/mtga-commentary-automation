@@ -1,9 +1,5 @@
 [
     {
-        "_speaker": "Default speaker",
-        "_product": "Default product"
-    },
-    {
         "_description": "SeikaSay2のオプション指定",
         "type": "SeikaSay2",
         "volume": null,
@@ -16,8 +12,23 @@
         "overBanner": null
     },
     {
-        "_description": "ゲーム終了時",
-        "type": "game",
+        "_description": "ゲーム開始時",
+        "event": "gameStart",
+        "speak": [
+            {
+                "text": "対戦よろしくお願いします"
+            },
+            {
+                "text": "対戦よろしくお願いします"
+            },
+            {
+                "text": "対戦よろしくお願いします"
+            }
+        ]
+    },
+    {
+        "_description": "ゲーム勝利時",
+        "event": "gameWin",
         "speak": [
             {
                 "text": "対戦ありがとうございました"
@@ -31,8 +42,38 @@
         ]
     },
     {
+        "_description": "ゲーム敗北時",
+        "event": "gameLose",
+        "speak": [
+            {
+                "text": "対戦ありがとうございました"
+            },
+            {
+                "text": "対戦ありがとうございました"
+            },
+            {
+                "text": "対戦ありがとうございました"
+            }
+        ]
+    },
+    {
+        "_description": "マリガンチェック時",
+        "event": "MulliganCheck",
+        "speak": [
+            {
+                "text": "マリガンチェック"
+            },
+            {
+                "text": "マリガンチェック"
+            },
+            {
+                "text": "マリガンチェック"
+            }
+        ]
+    },
+    {
         "_description": "ターン開始時",
-        "type": "turn",
+        "event": "TurnStart",
         "speak": [
             {
                 "text": "こちらのターン"
@@ -46,38 +87,53 @@
         ]
     },
     {
-        "_description": "攻撃クリーチャー指定時",
-        "verb": "attacking",
+        "_description": "カードを引いた時",
+        "event": "Draw",
         "speak": [
             {
-                "text": "{attacker}でアタック"
+                "text": "{card}をドロー"
             },
             {
-                "text": "お相手は{attacker}でアタック"
+                "text": ""
             },
             {
-                "text": "{attacker}でアタック"
+                "text": "ドロー"
             }
         ]
     },
     {
-        "_description": "ブロッククリーチャー指定時",
-        "verb": "blocks",
+        "_description": "カードを捨てた時",
+        "event": "Discard",
         "speak": [
             {
-                "text": "{blocker}で{attacker}をブロック"
+                "text": "{card}をディスカード"
             },
             {
-                "text": "お相手は{blocker}で{attacker}をブロック"
+                "text": "お相手は{card}をディスカード"
             },
             {
-                "text": "{blocker}で{attacker}をブロック"
+                "text": "{card}をディスカード"
+            }
+        ]
+    },
+    {
+        "_description": "土地をプレイした時",
+        "event": "PlayLand",
+        "speak": [
+            {
+                "text": "{card}をプレイ"
+            },
+            {
+                "text": "お相手は{card}をプレイ"
+            },
+            {
+                "text": "{card}をプレイ"
             }
         ]
     },
     {
         "_description": "呪文を唱えた時",
-        "verb": "casts",
+        "event": "CastSpell",
         "speak": [
             {
                 "text": "{card}をキャスト"
@@ -92,67 +148,7 @@
     },
     {
         "_description": "呪文が打ち消された時",
-        "verb": "counters",
-        "speak": [
-            {
-                "text": "{source}で{target}を打ち消し"
-            },
-            {
-                "text": "お相手は{source}で{target}を打ち消し"
-            },
-            {
-                "text": "{source}で{target}を打ち消し"
-            }
-        ]
-    },
-    {
-        "_description": "カードを1枚引いた時",
-        "verb": "draws",
-        "speak": [
-            {
-                "text": "{card}をドロー"
-            },
-            {
-                "text": ""
-            },
-            {
-                "text": "ドロー"
-            }
-        ]
-    },
-    {
-        "_description": "カードが追放された時",
-        "verb": "exiles",
-        "speak": [
-            {
-                "text": "{card}が追放"
-            },
-            {
-                "text": "お相手の{card}が追放"
-            },
-            {
-                "text": "{card}が追放"
-            }
-        ]
-    },
-    {
-        "_description": "土地をプレイした時",
-        "verb": "plays",
-        "speak": [
-            {
-                "text": "{card}をプレイ"
-            },
-            {
-                "text": "お相手は{card}をプレイ"
-            },
-            {
-                "text": "{card}をプレイ"
-            }
-        ]
-    },
-    {
-        "_description": "呪文か能力が解決した時",
-        "verb": "resolves",
+        "event": "Countered",
         "speak": [
             {
                 "text": ""
@@ -166,65 +162,8 @@
         ]
     },
     {
-        "_description": "墓地にカードが創出された時",
-        "verb": "sent to graveyard",
-        "reason": [
-            "(Conjure)"
-        ],
-        "speak": [
-            {
-                "text": "墓地に{card}を創出"
-            },
-            {
-                "text": "お相手の墓地に{card}が創出"
-            },
-            {
-                "text": "墓地に{card}を創出"
-            }
-        ]
-    },
-    {
-        "_description": "カードを1枚捨てた時",
-        "verb": "sent to graveyard",
-        "reason": [
-            "(Discard)"
-        ],
-        "speak": [
-            {
-                "text": "{card}をディスカード"
-            },
-            {
-                "text": "お相手は{card}をディスカード"
-            },
-            {
-                "text": "{card}をディスカード"
-            }
-        ]
-    },
-    {
-        "_description": "パーマネントが破壊された時",
-        "verb": "sent to graveyard",
-        "reason": [
-            "(Destroy)"
-        ],
-        "speak": [
-            {
-                "text": "{card}が破壊"
-            },
-            {
-                "text": "お相手の{card}が破壊"
-            },
-            {
-                "text": "{card}が破壊"
-            }
-        ]
-    },
-    {
-        "_description": "ライブラリが切削された時",
-        "verb": "sent to graveyard",
-        "reason": [
-            "(Mill)"
-        ],
+        "_description": "呪文が解決された時",
+        "event": "Resolve",
         "speak": [
             {
                 "text": ""
@@ -238,116 +177,38 @@
         ]
     },
     {
-        "_description": "効果により墓地にカードを置いた時",
-        "verb": "sent to graveyard",
-        "reason": [
-            "(Put)"
-        ],
+        "_description": "攻撃クリーチャー指定時",
+        "event": "Attack",
         "speak": [
             {
-                "text": ""
+                "text": "{attacker}でアタック"
             },
             {
-                "text": ""
+                "text": "お相手は{attacker}でアタック"
             },
             {
-                "text": ""
+                "text": "{attacker}でアタック"
             }
         ]
     },
     {
-        "_description": "パーマネントを生け贄に捧げた時",
-        "verb": "sent to graveyard",
-        "reason": [
-            "(Sacrifice)"
-        ],
+        "_description": "ブロッククリーチャー指定時",
+        "event": "Block",
         "speak": [
             {
-                "text": "{card}を生け贄に"
+                "text": "{blocker}で{attacker}をブロック"
             },
             {
-                "text": "お相手の{card}が生け贄に"
+                "text": "お相手は{blocker}で{attacker}をブロック"
             },
             {
-                "text": "{card}を生け贄に"
-            }
-        ]
-    },
-    {
-        "_description": "クリーチャーが死亡した時",
-        "verb": "sent to graveyard",
-        "reason": [
-            "(SBA_Damage)",
-            "(SBA_Deathtouch)",
-            "(SBA_ZeroToughness)"
-        ],
-        "speak": [
-            {
-                "text": "{card}が死亡"
-            },
-            {
-                "text": "お相手の{card}が死亡"
-            },
-            {
-                "text": "{card}が死亡"
-            }
-        ]
-    },
-    {
-        "_description": "オーラが状況起因処理で墓地に置かれた時",
-        "verb": "sent to graveyard",
-        "reason": [
-            "(SBA_UnattachedAura)"
-        ],
-        "speak": [
-            {
-                "text": "{card}が墓地に"
-            },
-            {
-                "text": "お相手の{card}が墓地に"
-            },
-            {
-                "text": "{card}が墓地に"
-            }
-        ]
-    },
-    {
-        "_description": "不明。呪文が立ち消えた時？",
-        "verb": "sent to graveyard",
-        "reason": [
-            "(nil)"
-        ],
-        "speak": [
-            {
-                "text": ""
-            },
-            {
-                "text": ""
-            },
-            {
-                "text": ""
-            }
-        ]
-    },
-    {
-        "_description": "ゲーム開始時",
-        "verb": "vs",
-        "speak": [
-            {
-                "text": "対戦よろしくお願いします"
-            },
-            {
-                "text": ""
-            },
-            {
-                "text": ""
+                "text": "{blocker}で{attacker}をブロック"
             }
         ]
     },
     {
         "_description": "ライフが増えた時",
-        "verb": "'s life total changed",
-        "life": "gain",
+        "event": "LifeGain",
         "speak": [
             {
                 "text": "{life_diff}点回復して、ライフは{life_to}"
@@ -362,8 +223,7 @@
     },
     {
         "_description": "ライフが減った時",
-        "verb": "'s life total changed",
-        "life": "lose",
+        "event": "LifeLose",
         "speak": [
             {
                 "text": "{life_diff}点くらって、ライフは{life_to}"
@@ -377,17 +237,92 @@
         ]
     },
     {
-        "_description": "マリガンチェック時",
-        "verb": "'s starting hand:",
+        "_description": "クリーチャーが死亡した時",
+        "event": "Die",
         "speak": [
             {
-                "text": "マリガンチェック"
+                "text": "{card}が死亡"
             },
+            {
+                "text": "お相手の{card}が死亡"
+            },
+            {
+                "text": "{card}が死亡"
+            }
+        ]
+    },
+    {
+        "_description": "パーマネントが破壊された時",
+        "event": "Destroy",
+        "speak": [
+            {
+                "text": "{card}が破壊"
+            },
+            {
+                "text": "お相手の{card}が破壊"
+            },
+            {
+                "text": "{card}が破壊"
+            }
+        ]
+    },
+    {
+        "_description": "パーマネントを生け贄に捧げた時",
+        "event": "Sacrifice",
+        "speak": [
+            {
+                "text": "{card}を生け贄に"
+            },
+            {
+                "text": "お相手の{card}が生け贄に"
+            },
+            {
+                "text": "{card}を生け贄に"
+            }
+        ]
+    },
+    {
+        "_description": "カードが追放された時",
+        "event": "Exile",
+        "speak": [
+            {
+                "text": "{card}が追放"
+            },
+            {
+                "text": "お相手の{card}が追放"
+            },
+            {
+                "text": "{card}が追放"
+            }
+        ]
+    },
+    {
+        "_description": "カードが墓地に置かれた時",
+        "event": "PutIntoGraveyard",
+        "speak": [
             {
                 "text": ""
             },
             {
                 "text": ""
+            },
+            {
+                "text": ""
+            }
+        ]
+    },
+    {
+        "_description": "カードが創出された時",
+        "event": "Conjure",
+        "speak": [
+            {
+                "text": "{card}を創出"
+            },
+            {
+                "text": "お相手は{card}を創出"
+            },
+            {
+                "text": "{card}を創出"
             }
         ]
     }

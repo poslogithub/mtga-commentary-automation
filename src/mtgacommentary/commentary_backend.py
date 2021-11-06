@@ -7,7 +7,7 @@ import os
 import re
 import sys
 import tkinter
-from tkinter import filedialog, messagebox, ttk
+from tkinter import StringVar, filedialog, messagebox, ttk
 from tkinter.scrolledtext import ScrolledText
 import psutil
 import websocket
@@ -41,7 +41,7 @@ class Verb:
     STARTING_HAND = "'s starting hand:"
     VS = "vs"
 
-class Reason(Enum):
+class Reason:
     # message from mtgatracker_backend
     CONJURE = "(Conjure)"
     DESTROY = "(Destroy)"
@@ -59,6 +59,7 @@ class Reason(Enum):
 class ParseKey:
     IS_OPPONENT = "isOpponent"
     MESSAGE_TYPE = "messageType"
+    EVENT = "event"
     VERB = "verb"
     ATTACKER = "attacker"
     BLOCKER = "blocker"
@@ -98,11 +99,10 @@ class ConfigValue:
 
 
 class SpeakerKey:
-    LIFE = "life"
     SPEAK = "speak"
     TEXT = MessageKey.TEXT
+    EVENT = ParseKey.EVENT
     TYPE = MessageKey.TYPE
-    EVENT = "event"
 
 class SpeakerValue:
     SEIKA_SAY2 = "seikaSay2"
@@ -159,46 +159,40 @@ class Event:
     CAST_SPELL = "CastSpell"
     COUNTERED = "Countered"
     RESOLVE = "Resolve"
-    EXILE = "Exile"
-    CONJURE = "Conjure"
-    DESTROY = "Destroy"
-    MILL = "Mill"
-    PUT = "Put"
-    SACRIFICE = "Sacrifice"
-    DIE = "Die"
-    UNATTACHED_AURA = "UnattachedAura"
-    NIL = "nil"
     ATTACK = "Attack"
     BLOCK = "Block"
     LIFE_GAIN = "LifeGain"
     LIFE_LOSE = "LifeLose"
+    DIE = "Die"
+    DESTROY = "Destroy"
+    SACRIFICE = "Sacrifice"
+    EXILE = "Exile"
+    PUT_INTO_GRAVEYARD = "PutIntoGraveyard"
+    CONJURE = "Conjure"
 
 class SpeakerWindowEntry(Enum):
     # (キー名, ラベルtext, textvariable)
-    GAME_START = (Event.GAME_START, "ゲーム開始時")
-    GAME_WIN = (Event.GAME_WIN, "ゲーム勝利時")
-    GAME_LOSE = (Event.GAME_LOSE, "ゲーム敗北時")
-    MULLIGAN_CHECK = (Event.MULLIGAN_CHECK, "マリガンチェック時")
-    TURN_START = (Event.TURN_START, "ターン開始時")
-    DRAW = (Event.DRAW, "カードを引いた時")
-    DISCARD = (Event.DISCARD, "カードを捨てた時")
-    PLAY_LAND = (Event.PLAY_LAND, "土地をプレイした時")
-    CAST_SPELL = (Event.CAST_SPELL, "呪文を唱えた時")
-    COUNTERED = (Event.COUNTERED, "呪文が打ち消された時")
-    RESOLVE = (Event.RESOLVE, "呪文が解決された時")
-    ATTACK = (Event.ATTACK, "攻撃クリーチャー指定時")
-    BLOCK = (Event.BLOCK, "ブロッククリーチャー指定時")
-    LIFE_GAIN = (Event.LIFE_GAIN, "ライフが増えた時")
-    LIFE_LOSE = (Event.LIFE_LOSE, "ライフが減った時")
-    EXILE = (Event.EXILE, "カードが追放された時")
-    DIE = (Event.DIE, "墓地にカードが置かれた時（死亡）")
-    DESTROY = (Event.DESTROY, "墓地にカードが置かれた時（破壊）")
-    SACRIFICE = (Event.SACRIFICE, "墓地にカードが置かれた時（生け贄）")
-    MILL = (Event.MILL, "墓地にカードが置かれた時（切削）")
-    PUT = (Event.PUT, "墓地にカードが置かれた時（効果）")
-    NIL = (Event.NIL, "墓地にカードが置かれた時（対象不適正）")
-    UNATTACHED_AURA = (Event.UNATTACHED_AURA, "墓地にカードが置かれた時（不正オーラ）")
-    CONJURE = (Event.CONJURE, "墓地にカードが創出された時")
+    GAME_START = (Event.GAME_START, "ゲーム開始時:")
+    GAME_WIN = (Event.GAME_WIN, "ゲーム勝利時:")
+    GAME_LOSE = (Event.GAME_LOSE, "ゲーム敗北時:")
+    MULLIGAN_CHECK = (Event.MULLIGAN_CHECK, "マリガンチェック時:")
+    TURN_START = (Event.TURN_START, "ターン開始時:")
+    DRAW = (Event.DRAW, "カードを引いた時:")
+    DISCARD = (Event.DISCARD, "カードを捨てた時:")
+    PLAY_LAND = (Event.PLAY_LAND, "土地をプレイした時:")
+    CAST_SPELL = (Event.CAST_SPELL, "呪文を唱えた時:")
+    COUNTERED = (Event.COUNTERED, "呪文が打ち消された時:")
+    RESOLVE = (Event.RESOLVE, "呪文が解決された時:")
+    ATTACK = (Event.ATTACK, "攻撃クリーチャー指定時:")
+    BLOCK = (Event.BLOCK, "ブロッククリーチャー指定時:")
+    LIFE_GAIN = (Event.LIFE_GAIN, "ライフが増えた時:")
+    LIFE_LOSE = (Event.LIFE_LOSE, "ライフが減った時:")
+    DIE = (Event.DIE, "クリーチャーが死亡した時:")
+    DESTROY = (Event.DESTROY, "パーマネントが破壊された時:")
+    SACRIFICE = (Event.SACRIFICE, "パーマネントを生け贄に捧げた時:")
+    EXILE = (Event.EXILE, "カードが追放された時:")
+    PUT_INTO_GRAVEYARD = (Event.PUT_INTO_GRAVEYARD, "カードが墓地に置かれた時:")
+    CONJURE = (Event.CONJURE, "カードが創出された時:")
 
 
 class ProcessName:
@@ -309,51 +303,54 @@ class CommentaryBackend(tkinter.Frame):
     def open_config_window(self):
         speaker1_index = self.cids.index(self.config.get(ConfigKey.SPEAKER1).get(ConfigKey.CID))
         speaker2_index = self.cids.index(self.config.get(ConfigKey.SPEAKER2).get(ConfigKey.CID))
-        self.logger.debug("open_config_window")
         self.config_window = tkinter.Toplevel(self)
         self.config_window.title("MTGA自動実況ツール - 設定ウィンドウ")
-        self.config_window.geometry("520x220")
+        self.config_window.geometry("520x190")
         self.config_window.grab_set()   # モーダルにする
         self.config_window.focus_set()  # フォーカスを新しいウィンドウをへ移す
         self.config_window.transient(self.master)   # タスクバーに表示しない
         self.config_frame = ttk.Frame(self.config_window)
-        self.config_frame.grid(column=0, row=0, sticky=tkinter.NSEW, padx=5, pady=10)
+        self.config_frame.grid(column=0, row=0, sticky=tkinter.NSEW, padx=5, pady=5)
         self.sv_seikasay2_path = tkinter.StringVar()
         self.sv_seikasay2_path.set(self.config.get(ConfigKey.SEIKA_SAY2_PATH))
         self.sv_speaker1 = tkinter.StringVar()
         self.sv_speaker2 = tkinter.StringVar()
         self.sv_hero_commentary_type = tkinter.StringVar()
         self.sv_opponent_commentary_type = tkinter.StringVar()
-        label_seikasay2 = ttk.Label(self.config_frame, text="SeikaSay2のパス: ", anchor="w")
-        label_seikasay2.grid(row=0, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
-        entry_seikasay2 = ttk.Entry(self.config_frame, width=40, textvariable=self.sv_seikasay2_path)
-        entry_seikasay2.grid(row=0, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
+        #label_seikasay2 = ttk.Label(self.config_frame, text="SeikaSay2のパス: ", anchor="w")
+        #label_seikasay2.grid(row=0, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
+        #entry_seikasay2 = ttk.Entry(self.config_frame, width=40, textvariable=self.sv_seikasay2_path)
+        #entry_seikasay2.grid(row=0, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
         button_seikasay2 = tkinter.Button(self.config_frame, text="参照", command=self.config_window_seikasay2)
         button_seikasay2.grid(row=0, column=2, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
         label_speaker1 = ttk.Label(self.config_frame, text="話者1: ", anchor="w")
-        label_speaker1.grid(row=1, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
+        label_speaker1.grid(row=0, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
         combobox_speaker1 = ttk.Combobox(self.config_frame, width=40, values=self.speakers, textvariable=self.sv_speaker1, state="readonly")
         combobox_speaker1.current(speaker1_index)
-        combobox_speaker1.grid(row=1, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
+        combobox_speaker1.grid(row=0, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
+        button_speaker1 = tkinter.Button(self.config_frame, text="編集", command=lambda: self.open_speaker_window(self.sv_speaker1.get().split(" ")[0]))
+        button_speaker1.grid(row=0, column=2, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
         label_speaker2 = ttk.Label(self.config_frame, text="話者2: ", anchor="w")
-        label_speaker2.grid(row=2, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
+        label_speaker2.grid(row=1, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
         combobox_speaker2 = ttk.Combobox(self.config_frame, width=40, values=self.speakers, textvariable=self.sv_speaker2, state="readonly")
         combobox_speaker2.current(speaker2_index)
-        combobox_speaker2.grid(row=2, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
+        combobox_speaker2.grid(row=1, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
+        button_speaker2 = tkinter.Button(self.config_frame, text="編集", command=lambda: self.open_speaker_window(self.sv_speaker2.get().split(" ")[0]))
+        button_speaker2.grid(row=1, column=2, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
         label_hero_commentary_type = ttk.Label(self.config_frame, text="自分のアクション: ", anchor="w")
-        label_hero_commentary_type.grid(row=3, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
+        label_hero_commentary_type.grid(row=2, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
         combobox_hero_commentary_type = ttk.Combobox(self.config_frame, width=40, values=self.HERO_COMMENTARY_TYPES, textvariable=self.sv_hero_commentary_type, state="readonly")
         combobox_hero_commentary_type.current(0 if self.config.get(ConfigKey.HERO_COMMENTARY_TYPE) == ConfigValue.SPEAKER1 else 1)
-        combobox_hero_commentary_type.grid(row=3, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
+        combobox_hero_commentary_type.grid(row=2, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
         label_opponent_commentary_type = ttk.Label(self.config_frame, text="対戦相手のアクション: ", anchor="w")
-        label_opponent_commentary_type.grid(row=4, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
+        label_opponent_commentary_type.grid(row=3, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
         combobox_opponent_commentary_type = ttk.Combobox(self.config_frame, width=40, values=self.OPPONENT_COMMENTARY_TYPES, textvariable=self.sv_opponent_commentary_type, state="readonly")
         combobox_opponent_commentary_type.current(0 if self.config.get(ConfigKey.OPPONENT_COMMENTARY_TYPE) == ConfigValue.SPEAKER1 else 1 if self.config.get(ConfigKey.OPPONENT_COMMENTARY_TYPE) == ConfigValue.SPEAKER2 else 2)
-        combobox_opponent_commentary_type.grid(row=4, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
+        combobox_opponent_commentary_type.grid(row=3, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
         button_ok = tkinter.Button(self.config_frame, text="保存して開始", command=self.config_window_ok)
-        button_ok.grid(row=5, column=1, sticky=tkinter.E, padx=5, pady=5)
+        button_ok.grid(row=4, column=1, sticky=tkinter.E, padx=5, pady=10)
         button_cancel = tkinter.Button(self.config_frame, text="保存しないで開始", command=self.config_window_cancel)
-        button_cancel.grid(row=5, column=2, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
+        button_cancel.grid(row=4, column=2, sticky=tkinter.W + tkinter.E, padx=5, pady=10)
         self.wait_window(self.config_window)
     
     def config_window_seikasay2(self):
@@ -384,68 +381,62 @@ class CommentaryBackend(tkinter.Frame):
 
     def open_speaker2_window(self):
         self.open_speaker_window(self.sv_speaker2.get().split(" ")[0])
-        
+
+    def get_speak_obj(self, speakers, event):
+        for obj in speakers:
+            if obj.get(SpeakerKey.EVENT) == event:
+                return obj.get(SpeakerKey.SPEAK)
+        return None
+
     def open_speaker_window(self, cid):
-        speaker = self.load_speaker(cid)
-        self.logger.debug("open_speaker_window")
+        speakers = self.load_speaker(cid)
         self.speaker_window = tkinter.Toplevel(self.config_window)
-        self.speaker_window.title("MTGA自動実況ツール - 話者ウィンドウ")
-        self.speaker_window.geometry("480x260")
+        self.speaker_window.title("MTGA自動実況ツール - 話者ウィンドウ - {}".format(self.get_speaker_name(cid)))
+        self.speaker_window.geometry("940x600")
         self.speaker_window.grab_set()   # モーダルにする
         self.speaker_window.focus_set()  # フォーカスを新しいウィンドウをへ移す
         self.speaker_window.transient(self.master)   # タスクバーに表示しない
         self.speaker_frame = ttk.Frame(self.speaker_window)
-        self.speaker_frame.grid(column=0, row=0, sticky=tkinter.NSEW, padx=5, pady=10)
-        #TODO for key in Timing.SPEAKER_TUPLE
+        self.speaker_frame.grid(column=0, row=0, sticky=tkinter.NSEW, padx=5, pady=5)
+        
+        label1 = ttk.Label(self.speaker_frame, text="自分のアクション（一人称）", anchor="w")
+        label1.grid(row=0, column=1, sticky=tkinter.W + tkinter.E, padx=4, pady=2)
+        label2 = ttk.Label(self.speaker_frame, text="対戦相手のアクション（三人称）", anchor="w")
+        label2.grid(row=0, column=2, sticky=tkinter.W + tkinter.E, padx=4, pady=2)
+        label3 = ttk.Label(self.speaker_frame, text="対戦相手のアクション（一人称）", anchor="w")
+        label3.grid(row=0, column=3, sticky=tkinter.W + tkinter.E, padx=4, pady=2)
+
         labels = {}
-        for key in Label.SPEAKER_LIST:
-            labels[key] = ttk.Label(self.speaker_frame, text=key, anchor="w")
-
-        self.sv[Timing.GAME_START] = tkinter.StringVar()
-        self.sv_seikasay2_path.set(self.speaker.get(Key.SEIKA_SAY2_PATH))
-        label_game_start = ttk.Label(self.speaker_frame, text=Label.GAME_START, anchor="w")
-        label_game_start.grid(row=0, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
-        entry_game_start = ttk.Entry(self.speaker_frame, width=40, textvariable=self.sv_seikasay2_path)
-        entry_game_start.grid(row=0, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
-
-
-        self.sv_seikasay2_path = tkinter.StringVar()
-        self.sv_seikasay2_path.set(self.speaker.get(Key.SEIKA_SAY2_PATH))
-        self.sv_speaker1 = tkinter.StringVar()
-        self.sv_speaker2 = tkinter.StringVar()
-        self.sv_hero_commentary_type = tkinter.StringVar()
-        self.sv_opponent_commentary_type = tkinter.StringVar()
-        label_seikasay2 = ttk.Label(self.speaker_frame, text="SeikaSay2のパス: ", anchor="w")
-        label_seikasay2.grid(row=0, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
-        entry_seikasay2 = ttk.Entry(self.speaker_frame, width=40, textvariable=self.sv_seikasay2_path)
-        entry_seikasay2.grid(row=0, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
-        button_seikasay2 = tkinter.Button(self.speaker_frame, text="参照", command=self.speaker_window_seikasay2)
-        button_seikasay2.grid(row=0, column=2, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
-        label_speaker1 = ttk.Label(self.speaker_frame, text="話者1: ", anchor="w")
-        label_speaker1.grid(row=1, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
-        combobox_speaker1 = ttk.Combobox(self.speaker_frame, width=40, values=self.speakers, textvariable=self.sv_speaker1, state="readonly")
-        combobox_speaker1.current(speaker1_index)
-        combobox_speaker1.grid(row=1, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
-        label_speaker2 = ttk.Label(self.speaker_frame, text="話者2: ", anchor="w")
-        label_speaker2.grid(row=2, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
-        combobox_speaker2 = ttk.Combobox(self.speaker_frame, width=40, values=self.speakers, textvariable=self.sv_speaker2, state="readonly")
-        combobox_speaker2.current(speaker2_index)
-        combobox_speaker2.grid(row=2, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
-        label_hero_commentary_type = ttk.Label(self.speaker_frame, text="自分のアクション: ", anchor="w")
-        label_hero_commentary_type.grid(row=3, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
-        combobox_hero_commentary_type = ttk.Combobox(self.speaker_frame, width=40, values=self.HERO_COMMENTARY_TYPES, textvariable=self.sv_hero_commentary_type, state="readonly")
-        combobox_hero_commentary_type.current(0 if self.speaker.get(Key.HERO_COMMENTARY_TYPE) == Value.SPEAKER1 else 1)
-        combobox_hero_commentary_type.grid(row=3, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
-        label_opponent_commentary_type = ttk.Label(self.speaker_frame, text="対戦相手のアクション: ", anchor="w")
-        label_opponent_commentary_type.grid(row=4, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
-        combobox_opponent_commentary_type = ttk.Combobox(self.speaker_frame, width=40, values=self.OPPONENT_COMMENTARY_TYPES, textvariable=self.sv_opponent_commentary_type, state="readonly")
-        combobox_opponent_commentary_type.current(0 if self.speaker.get(Key.OPPONENT_COMMENTARY_TYPE) == Value.SPEAKER1 else 1 if self.speaker.get(Key.OPPONENT_COMMENTARY_TYPE) == Value.SPEAKER2 else 2)
-        combobox_opponent_commentary_type.grid(row=4, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
-        button_ok = tkinter.Button(self.speaker_frame, text="保存して開始", command=self.speaker_window_ok)
-        button_ok.grid(row=5, column=1, sticky=tkinter.E, padx=5, pady=5)
-        button_cancel = tkinter.Button(self.speaker_frame, text="保存しないで開始", command=self.speaker_window_cancel)
-        button_cancel.grid(row=5, column=2, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
+        svs = {}
+        entrys = {}
+        i = 1
+        for key in SpeakerWindowEntry:
+            labels[key.name] = ttk.Label(self.speaker_frame, text=key.value[1], anchor="w")
+            labels[key.name].grid(row=i, column=0, sticky=tkinter.W + tkinter.E, padx=4, pady=2)
+            svs[key.name] = []
+            entrys[key.name] = []
+            for j in range(3):
+                svs[key.name].append(StringVar())
+                svs[key.name][j].set(self.get_speak_obj(speakers, key.value[0])[j].get(SpeakerKey.TEXT))
+                entrys[key.name].append(ttk.Entry(self.speaker_frame, width=40, textvariable=svs[key.name][j]))
+                entrys[key.name][j].grid(row=i, column=j+1, sticky=tkinter.W + tkinter.E, padx=4, pady=2)
+            i += 1
+        
+        button_ok = tkinter.Button(self.speaker_frame, text="保存して閉じる", command=lambda: self.speaker_window_ok(cid, speakers, svs))
+        button_ok.grid(row=i, column=2, sticky=tkinter.W + tkinter.E, padx=4, pady=10)
+        button_cancel = tkinter.Button(self.speaker_frame, text="保存しないで閉じる", command=self.speaker_window_cancel)
+        button_cancel.grid(row=i, column=3, sticky=tkinter.W + tkinter.E, padx=4, pady=10)
         self.wait_window(self.speaker_window)
+
+    def speaker_window_ok(self, cid, speakers, svs):
+        for key in SpeakerWindowEntry:
+            for j in range(3):
+                self.get_speak_obj(speakers, key.value[0])[j][SpeakerKey.TEXT] = svs[key.name][j].get()
+        self.save_speaker(cid, speakers)
+        self.speaker_window.destroy()
+
+    def speaker_window_cancel(self):
+        self.speaker_window.destroy()
 
     def load_speaker(self, cid):
         speaker_file = "config\\{}.json".format(cid)
@@ -453,19 +444,6 @@ class CommentaryBackend(tkinter.Frame):
             speaker_file = self.DEFAULT_SPEAKER_FILE
         with open(speaker_file, 'r', encoding="utf_8_sig") as rf:
             return json.load(rf)
-
-    def load_speakers(self):
-        speaker_file = "config\\{}.json".format(self.config.get(ConfigKey.SPEAKER1).get(ConfigKey.CID))
-        if not os.path.isfile(speaker_file):
-            speaker_file = self.DEFAULT_SPEAKER_FILE
-        with open(speaker_file, 'r', encoding="utf_8_sig") as rf:
-            self.speaker1_obj = json.load(rf)
-
-        speaker_file = "config\\{}.json".format(self.config.get(ConfigKey.SPEAKER2).get(ConfigKey.CID))
-        if not os.path.isfile(speaker_file):
-            speaker_file = self.DEFAULT_SPEAKER_FILE
-        with open(speaker_file, 'r', encoding="utf_8_sig") as rf:
-            self.speaker2_obj = json.load(rf)
 
     def save_speaker(self, cid, speaker):
         speaker_file = "config\\{}.json".format(cid)
@@ -486,81 +464,126 @@ class CommentaryBackend(tkinter.Frame):
             if len(text_array) == 0:
                 self.logger.warning("warning: 長さ0のtext_array")
             elif len(text_array) == 1:
-                if text_array[0].get(MessageKey.TYPE) == MessageValue.GAME:
+                if text_array[0].get(MessageKey.TYPE) == MessageValue.GAME: # ゲーム終了  {"text": "screenName won!", "type": "game"}
                     parsed[ParseKey.MESSAGE_TYPE] = text_array[0].get(MessageKey.TYPE)
-                elif text_array[0].get(MessageKey.TYPE) == MessageValue.TURN:
+                    if text_array[0].get(MessageKey.TEXT).startswith(self.opponent_screen_name):
+                        parsed[ParseKey.IS_OPPONENT] = True
+                        parsed[ParseKey.EVENT] = Event.GAME_LOSE
+                    else:
+                        parsed[ParseKey.EVENT] = Event.GAME_WIN
+                elif text_array[0].get(MessageKey.TYPE) == MessageValue.TURN:   # ターン開始  { "text": "N / screenName Turn M", "type": "turn" }
                     if text_array[0].get(MessageKey.TEXT).find(self.opponent_screen_name) >= 0:
                         parsed[ParseKey.IS_OPPONENT] = True
                     parsed[ParseKey.MESSAGE_TYPE] = text_array[0].get(MessageKey.TYPE)
+                    parsed[ParseKey.EVENT] = Event.TURN_START
                 else:
                     self.logger.warning("warning: 不明なtype: {}".format(text_array[0].get(MessageKey.TYPE)))
             else:
                 parsed[ParseKey.VERB] = text_array[1].strip()
-                if parsed.get(ParseKey.VERB) == "'s":    # "'s"が入った場合はガチャガチャする
+
+                # 動詞が"'s"の場合はガチャガチャする
+                if parsed.get(ParseKey.VERB) == "'s":   # { "text": カード名, "type": hero/opponent }, "'s ", { "text": ability, "type": "ability"}, ...
                     parsed[ParseKey.SOURCE] = text_array[0].get(MessageKey.TEXT)
                     parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
                     parsed[ParseKey.MESSAGE_TYPE] = text_array[2].get(MessageKey.TYPE)    # ability
+
+                    # ":"が入らない場合は"'s'"の直後を主語にする
                     if len(text_array) >= 4 and text_array[3].strip() != ":":   # ex: "CARDNAME1 's ability exiles CARDNAME2"
                         text_array = text_array[2:]
+
+                    # ":"が入る場合は":"の直後を主語にする
                     elif len(text_array) >= 6 and text_array[3].strip() == ":": # ex: "CARDNAME1 's ability : SCREENNAME draws CARDNAME2"
                         text_array = text_array[4:]
                     parsed[ParseKey.VERB] = text_array[1].strip()
-                    if parsed.get(ParseKey.VERB) == "'s":
-                        self.logger.warning("warning: 不明なtext_array: {}".format(text_array))
 
-                if parsed.get(ParseKey.VERB) == ":":    # ":"が入った場合はガチャガチャする
+                # 動詞が":"の場合は":"の直後を主語にする
+                if parsed.get(ParseKey.VERB) == ":":    # { "text": カード名, "type": "opponent" }, ": ", { "text": screenName, "type": "opponent" }, ...
                     parsed[ParseKey.SOURCE] = text_array[0].get(MessageKey.TEXT)
                     if len(text_array) >= 4:   # ex: "CARDNAME1 : SCREENNAME draws CARDNAME2"
                         text_array = text_array[2:]
                     parsed[ParseKey.VERB] = text_array[1].strip()
-                    if parsed.get(ParseKey.VERB) == ":":
-                        self.logger.warning("warning: 不明なtext_array: {}".format(text_array))
 
-                if parsed.get(ParseKey.VERB) == Verb.ATTAKING:
+                if parsed.get(ParseKey.VERB) == Verb.ATTAKING:  # 攻撃クリーチャー指定時  { "text": カード名, "type": hero/opponent }, " attacking"
                     parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
                     parsed[ParseKey.ATTACKER] = self.del_ruby(text_array[0].get(MessageKey.TEXT))
+                    parsed[ParseKey.CARD] = parsed[ParseKey.ATTACKER]   # 念のため
+                    parsed[ParseKey.EVENT] = Event.ATTACK
                 elif parsed.get(ParseKey.VERB) == Verb.BLOCKS:
                     parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
                     parsed[ParseKey.BLOCKER] = self.del_ruby(text_array[0].get(MessageKey.TEXT))
                     parsed[ParseKey.ATTACKER] = self.del_ruby(text_array[2].get(MessageKey.TEXT))
+                    parsed[ParseKey.CARD] = parsed[ParseKey.BLOCKER]   # 念のため
+                    parsed[ParseKey.SOURCE] = parsed[ParseKey.BLOCKER]   # 念のため
+                    parsed[ParseKey.TARGET] = parsed[ParseKey.ATTACKER]   # 念のため
+                    parsed[ParseKey.EVENT] = Event.BLOCK
                 elif parsed.get(ParseKey.VERB) == Verb.CASTS:
                     parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
                     parsed[ParseKey.CARD] = self.del_ruby(text_array[2].get(MessageKey.TEXT))
+                    parsed[ParseKey.EVENT] = Event.CAST_SPELL
                 elif parsed.get(ParseKey.VERB) == Verb.COUNTERS:
                     parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
                     parsed[ParseKey.SOURCE] = self.del_ruby(text_array[0].get(MessageKey.TEXT))
                     parsed[ParseKey.TARGET] = self.del_ruby(text_array[2].get(MessageKey.TEXT))
+                    parsed[ParseKey.CARD] = parsed[ParseKey.TARGET] # 念のため
+                    parsed[ParseKey.EVENT] = Event.COUNTERED
                 elif parsed.get(ParseKey.VERB) == Verb.DRAWS:
                     parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
                     if len(text_array) >= 3:
                         parsed[ParseKey.CARD] = self.del_ruby(text_array[2].get(MessageKey.TEXT))
+                        parsed[ParseKey.TARGET] = parsed[ParseKey.CARD] # 念のため
+                    parsed[ParseKey.EVENT] = Event.DRAW
                 elif parsed.get(ParseKey.VERB) == Verb.EXILES:
                     parsed[ParseKey.IS_OPPONENT] = True if text_array[2].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
                     parsed[ParseKey.CARD] = self.del_ruby(text_array[2].get(MessageKey.TEXT))
+                    parsed[ParseKey.TARGET] = parsed[ParseKey.CARD] # 念のため
+                    parsed[ParseKey.EVENT] = Event.EXILE
                 elif parsed.get(ParseKey.VERB) == Verb.LIFE_TOTAL_CHANGED:
                     parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
                     parsed[ParseKey.LIFE_FROM] = int(text_array[2].split(" -> ")[0])
                     parsed[ParseKey.LIFE_TO] = int(text_array[2].split(" -> ")[1])
-                    parsed[ParseKey.LIFE_DIFF] = parsed[ParseKey.LIFE_TO] - parsed[ParseKey.LIFE_FROM]
+                    parsed[ParseKey.SOURCE] = parsed[ParseKey.LIFE_FROM] # 念のため
+                    parsed[ParseKey.TARGET] = parsed[ParseKey.LIFE_TO] # 念のため
+                    parsed[ParseKey.EVENT] = Event.LIFE_GAIN if parsed[ParseKey.LIFE_FROM] < parsed[ParseKey.LIFE_TO] else Event.LIFE_LOSE
+                    parsed[ParseKey.LIFE_DIFF] = abs(parsed[ParseKey.LIFE_TO] - parsed[ParseKey.LIFE_FROM])
                 elif parsed.get(ParseKey.VERB) == Verb.PLAYS:
                     parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
                     parsed[ParseKey.CARD] = self.del_ruby(text_array[2].get(MessageKey.TEXT))
+                    parsed[ParseKey.TARGET] = parsed[ParseKey.CARD] # 念のため
+                    parsed[ParseKey.EVENT] = Event.PLAY_LAND
                 elif parsed.get(ParseKey.VERB) == Verb.RESOLVES:
                     parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
                     parsed[ParseKey.CARD] = self.del_ruby(text_array[0].get(MessageKey.TEXT))
+                    parsed[ParseKey.TARGET] = parsed[ParseKey.CARD] # 念のため
+                    parsed[ParseKey.EVENT] = Event.RESOLVE
                 elif parsed.get(ParseKey.VERB) == Verb.SENT_TO_GRAVEYARD:
                     parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
                     parsed[ParseKey.CARD] = self.del_ruby(text_array[0].get(MessageKey.TEXT))
+                    parsed[ParseKey.TARGET] = parsed[ParseKey.CARD] # 念のため
                     parsed[ParseKey.REASON] = text_array[2]
-                    if parsed.get(ParseKey.REASON) not in [e.value for e in Reason]:
+                    if parsed.get(ParseKey.REASON) in [Reason.SBA_DAMEGE, Reason.SBA_DEATHTOUCH, Reason.SBA_ZERO_TOUGHNESS]: # 死亡（致死ダメージ、接死ダメージ、タフネス0未満）
+                        parsed[ParseKey.EVENT] = Event.DIE
+                    elif parsed.get(ParseKey.REASON) in [Reason.DESTROY]: # 破壊
+                        parsed[ParseKey.EVENT] = Event.DESTROY
+                    elif parsed.get(ParseKey.REASON) in [Reason.SACRIFICE]: # 生け贄
+                        parsed[ParseKey.EVENT] = Event.SACRIFICE
+                    elif parsed.get(ParseKey.REASON) in [Reason.CONJURE]: # 創出
+                        parsed[ParseKey.EVENT] = Event.CONJURE
+                    elif parsed.get(ParseKey.REASON) in [Reason.DISCARD]: # ディスカード
+                        parsed[ParseKey.EVENT] = Event.DISCARD
+                    elif parsed.get(ParseKey.REASON) in [Reason.MILL, Reason.PUT, Reason.SBA_UNATTACHED_AURA, Reason.NIL]: # 墓地に置く（切削、墓地にカードを置く効果、不正オーラ、対象不適正呪文）
+                        parsed[ParseKey.EVENT] = Event.PUT_INTO_GRAVEYARD
+                    else:
                         self.logger.warning("warning: 不明なreason: {}".format(parsed.get(ParseKey.REASON)))
                 elif parsed.get(ParseKey.VERB) == Verb.STARTING_HAND:
-                    pass
+                    parsed[ParseKey.EVENT] = Event.MULLIGAN_CHECK
                 elif parsed.get(ParseKey.VERB) == Verb.VS:
                     self.hero_screen_name = text_array[0].get(MessageKey.TEXT)
                     self.opponent_screen_name = text_array[2].get(MessageKey.TEXT)
+                    parsed[ParseKey.SOURCE] = self.hero_screen_name # なんとなく
+                    parsed[ParseKey.TARGET] = self.opponent_screen_name # なんとなく
+                    parsed[ParseKey.EVENT] = Event.GAME_START
                 else:
-                    self.logger.warning("warning: 不明なverb: ".format(parsed.get(ParseKey.VERB)))
+                    self.logger.warning("warning: 不明なverb: {}".format(parsed.get(ParseKey.VERB)))
 
             return parsed
         else:
@@ -587,25 +610,10 @@ class CommentaryBackend(tkinter.Frame):
                 return None
         
         speak_obj = None
-        if parsed.get(ParseKey.MESSAGE_TYPE) in [MessageValue.GAME, MessageValue.TURN]:
-            for obj in speaker:
-                if obj.get(MessageKey.TYPE) == parsed.get(ParseKey.MESSAGE_TYPE):
-                    speak_obj = obj.get(SpeakerKey.SPEAK)[speak_idx]
-                    break
-        else:
-            for obj in speaker:
-                if obj.get(ParseKey.VERB) == parsed.get(ParseKey.VERB):
-                    if obj.get(ParseKey.VERB) == Verb.SENT_TO_GRAVEYARD:
-                        if parsed.get(ParseKey.REASON) not in obj.get(ParseKey.REASON):
-                            continue
-                    if obj.get(ParseKey.VERB) == Verb.LIFE_TOTAL_CHANGED:
-                        if obj.get(SpeakerKey.LIFE) == SpeakerValue.GAIN and parsed.get(ParseKey.LIFE_DIFF) < 0:
-                            continue
-                        if obj.get(SpeakerKey.LIFE) == SpeakerValue.LOSE and parsed.get(ParseKey.LIFE_DIFF) > 0:
-                            continue
-                        parsed[ParseKey.LIFE_DIFF] = abs(parsed.get(ParseKey.LIFE_DIFF))
-                    speak_obj = obj.get(SpeakerKey.SPEAK)[speak_idx]
-                    break
+        for obj in speaker:
+            if obj.get(SpeakerKey.EVENT) == parsed.get(ParseKey.EVENT):
+                speak_obj = obj.get(SpeakerKey.SPEAK)[speak_idx]
+                break
         
         text = speak_obj.get(SpeakerKey.TEXT)
         for word in ReplaceWord:
@@ -644,14 +652,11 @@ class CommentaryBackend(tkinter.Frame):
         return self.cids, self.speakers
 
     def get_speaker_name(self, cid):
-        self.logger.debug(cid)
         for speaker in self.speakers:
             if speaker.startswith(cid):
-                self.logger.debug(speaker)
                 try:
                     return re.sub("^"+cid, "", speaker).split(" - ")[0].strip()
                 except:
-                    self.logger.debug("except")
                     return None
         return None
 
@@ -686,11 +691,10 @@ class CommentaryBackend(tkinter.Frame):
                 speaker = self.get_speaker_name(cid)
                 if not speaker:
                     speaker = ""
+                self.logger.info(speaker+"「"+text+"」")
                 self.master_text.insert("end", speaker+"「"+text+"」\n")
                 self.master_text.yview_moveto(1)
-                speaked_text = self.speak(cid, text, speak_param_obj)
-                if speaked_text:
-                    self.logger.info(speaked_text)
+                self.speak(cid, text, speak_param_obj)
 
     def on_error(self, ws, error):
         self.logger.error("error: called on_error")
@@ -799,7 +803,8 @@ class CommentaryBackend(tkinter.Frame):
         self.open_config_window()
         self.logger.info("話者1: {}".format(self.config.get(ConfigKey.SPEAKER1).get(ConfigKey.NAME)))
         self.logger.info("話者2: {}".format(self.config.get(ConfigKey.SPEAKER2).get(ConfigKey.NAME)))
-        self.load_speakers()
+        self.speaker1_obj = self.load_speaker(self.config.get(ConfigKey.SPEAKER1).get(ConfigKey.CID))
+        self.speaker2_obj = self.load_speaker(self.config.get(ConfigKey.SPEAKER2).get(ConfigKey.CID))
 
         self.start_ws_client()
         self.speak_config()
