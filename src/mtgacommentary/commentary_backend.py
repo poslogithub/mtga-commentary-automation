@@ -1,4 +1,5 @@
 import _thread
+from enum import Enum
 import json
 import logging
 import logging.handlers
@@ -6,80 +7,31 @@ import os
 import re
 import sys
 import tkinter
-from tkinter import filedialog, messagebox, ttk
+from tkinter import StringVar, filedialog, messagebox, ttk
 from tkinter.scrolledtext import ScrolledText
 import psutil
 import websocket
 
 from seikasay2 import SeikaSay2
 
-class Key:
-    # message from mtgatracker_backend
+
+# message from mtgatracker_backend
+class MessageKey:
     GAME_HISTORY_EVENT = "game_history_event"
     TYPE = "type"
     TEXT = "text"
 
-    # parsed
-    IS_OPPONENT = "isOpponent"
-    MESSAGE_TYPE = "messageType"
-    VERB = "verb"
-    ATTACKER = "attacker"
-    BLOCKER = "blocker"
-    CARD = "card"
-    SOURCE = "source"
-    REASON = "reason"
-    LIFE_DIFF = "life_diff"
-    LIFE_FROM = "life_from"
-    LIFE_TO = "life_to"
-
-    # config
-    SEIKA_SAY2_PATH = "seikaSay2Path"
-    SPEAKER1 = "speaker1"
-    SPEAKER2 = "speaker2"
-    CID = "cid"
-    NAME = "name"
-    HERO_COMMENTARY_TYPE = "heroCommentaryType"
-    OPPONENT_COMMENTARY_TYPE = "opponentCommentaryType"
-    MTGATRACKER_BACKEND_URL = "mtgatrackerBackendUrl"
-
-    # speaker
-    LIFE = "life"
-    SPEAK = "speak"
-    #TEXT = "text"  #reuse
-
-    # speaker_param
-    ASYNC = "async"
-    VOLUME = "volume"
-    SPEED = "speed"
-    PITCH = "pitch"
-    ALPHA = "alpha"
-    INTONATION = "intonation"
-    EMOTION_EP = "emotionEP"
-    EMOTION_P = "emotionP"
-    OVER_BANNER = "overBanner"
-
-class Value:
-    # message from mtgatracker_backend
+class MessageValue:
     GAME = "game"
     TURN = "turn"
     HERO = "hero"
     OPPONENT = "opponent"
 
-    # config
-    SPEAKER1 = "speaker1"
-    SPEAKER2 = "speaker2"
-    NEVER = "never"
-
-    #speaker
-    SEIKA_SAY2 = "seikaSay2"
-    GAIN = "gain"
-    LOSE = "lose"
-
 class Verb:
-    # message from mtgatracker_backend
     ATTAKING = "attacking"
     BLOCKS = "blocks"
-    CASTS ="casts"
+    CASTS = "casts"
+    COUNTERS = "counters"
     DRAWS = "draws"
     EXILES = "exiles"
     LIFE_TOTAL_CHANGED = "'s life total changed"
@@ -97,16 +49,157 @@ class Reason:
     MILL = "(Mill)"
     PUT = "(Put)"
     SACRIFICE = "(Sacrifice)"
-    SBA_DAMEGE  ="(SBA_Damage)"
+    SBA_DAMEGE = "(SBA_Damage)"
     SBA_DEATHTOUCH = "(SBA_Deathtouch)",
     SBA_ZERO_TOUGHNESS = "(SBA_ZeroToughness)"
     SBA_UNATTACHED_AURA = "(SBA_UnattachedAura)"
     NIL = "(nil)"
 
+
+class ParseKey:
+    IS_OPPONENT = "isOpponent"
+    MESSAGE_TYPE = "messageType"
+    EVENT = "event"
+    VERB = "verb"
+    ATTACKER = "attacker"
+    BLOCKER = "blocker"
+    CARD = "card"
+    SOURCE = "source"
+    TARGET = "target"
+    REASON = "reason"
+    LIFE_FROM = "life_from"
+    LIFE_TO = "life_to"
+    LIFE_DIFF = "life_diff"
+
+class ReplaceWord(Enum):
+    ATTACKER = ParseKey.ATTACKER
+    BLOCKER = ParseKey.BLOCKER
+    CARD = ParseKey.CARD
+    SOURCE = ParseKey.SOURCE
+    TARGET = ParseKey.TARGET
+    LIFE_FROM = ParseKey.LIFE_FROM
+    LIFE_TO = ParseKey.LIFE_TO
+    LIFE_DIFF = ParseKey.LIFE_DIFF
+
+
+class ConfigKey:
+    SEIKA_SAY2_PATH = "seikaSay2Path"
+    SPEAKER1 = "speaker1"
+    SPEAKER2 = "speaker2"
+    CID = "cid"
+    NAME = "name"
+    HERO_COMMENTARY_TYPE = "heroCommentaryType"
+    OPPONENT_COMMENTARY_TYPE = "opponentCommentaryType"
+    MTGATRACKER_BACKEND_URL = "mtgatrackerBackendUrl"
+
+class ConfigValue:
+    SPEAKER1 = "speaker1"
+    SPEAKER2 = "speaker2"
+    NEVER = "never"
+
+
+class SpeakerKey:
+    SPEAK = "speak"
+    TEXT = MessageKey.TEXT
+    EVENT = ParseKey.EVENT
+    TYPE = MessageKey.TYPE
+
+class SpeakerValue:
+    SEIKA_SAY2 = "seikaSay2"
+    GAIN = "gain"
+    LOSE = "lose"
+
+class SpeakerParamKey:
+    ASYNC = "async"
+    VOLUME = "volume"
+    SPEED = "speed"
+    PITCH = "pitch"
+    ALPHA = "alpha"
+    INTONATION = "intonation"
+    EMOTION_EP = "emotionEP"
+    EMOTION_P = "emotionP"
+    OVER_BANNER = "overBanner"
+
+
+class SpeakerLabel:
+    GAME_START = "ゲーム開始時"
+    GAME_WIN = "ゲーム勝利時"
+    GAME_LOSE = "ゲーム敗北時"
+    MULLIGAN_CHECK = "マリガンチェック時"
+    TURN_START = "ターン開始時"
+    DRAW = "カードを引いた時"
+    DISCARD = "カードを捨てた時"
+    PLAY_LAND = "土地をプレイした時"
+    CAST_SPELL = "呪文を唱えた時"
+    COUNTERED = "呪文が打ち消された時"
+    RESOLVE = "呪文が解決した時"
+    EXILE = "カードが追放された時"
+    CONJURE = "墓地にカードが置かれた時（創出）"
+    DESTROY = "墓地にカードが置かれた時（破壊）"
+    MILL = "墓地にカードが置かれた時（切削）"
+    PUT = "墓地にカードが置かれた時（効果）"
+    SACRIFICE = "墓地にカードが置かれた時（生け贄）"
+    DIE = "墓地にカードが置かれた時（死亡）"
+    UNATTACHED_AURA = "墓地にカードが置かれた時（不正オーラ）"
+    NIL = "墓地にカードが置かれた時（対象不適正）"
+    ATTACK = "攻撃クリーチャー指定時"
+    BLOCK = "ブロッククリーチャー指定時"
+    LIFE_GAIN = "ライフが増えた時"
+    LIFE_LOSE = "ライフが減った時"
+
+class Event:
+    GAME_START = "gameStart"
+    GAME_WIN = "gameWin"
+    GAME_LOSE = "gameLose"
+    MULLIGAN_CHECK = "MulliganCheck"
+    TURN_START = "TurnStart"
+    DRAW = "Draw"
+    DISCARD = "Discard"
+    PLAY_LAND = "PlayLand"
+    CAST_SPELL = "CastSpell"
+    COUNTERED = "Countered"
+    RESOLVE = "Resolve"
+    ATTACK = "Attack"
+    BLOCK = "Block"
+    LIFE_GAIN = "LifeGain"
+    LIFE_LOSE = "LifeLose"
+    DIE = "Die"
+    DESTROY = "Destroy"
+    SACRIFICE = "Sacrifice"
+    EXILE = "Exile"
+    PUT_INTO_GRAVEYARD = "PutIntoGraveyard"
+    CONJURE = "Conjure"
+
+class SpeakerWindowEntry(Enum):
+    # (キー名, ラベルtext, textvariable)
+    GAME_START = (Event.GAME_START, "ゲーム開始時:")
+    GAME_WIN = (Event.GAME_WIN, "ゲーム勝利時:")
+    GAME_LOSE = (Event.GAME_LOSE, "ゲーム敗北時:")
+    MULLIGAN_CHECK = (Event.MULLIGAN_CHECK, "マリガンチェック時:")
+    TURN_START = (Event.TURN_START, "ターン開始時:")
+    DRAW = (Event.DRAW, "カードを引いた時:")
+    DISCARD = (Event.DISCARD, "カードを捨てた時:")
+    PLAY_LAND = (Event.PLAY_LAND, "土地をプレイした時:")
+    CAST_SPELL = (Event.CAST_SPELL, "呪文を唱えた時:")
+    COUNTERED = (Event.COUNTERED, "呪文が打ち消された時:")
+    RESOLVE = (Event.RESOLVE, "呪文が解決された時:")
+    ATTACK = (Event.ATTACK, "攻撃クリーチャー指定時:")
+    BLOCK = (Event.BLOCK, "ブロッククリーチャー指定時:")
+    LIFE_GAIN = (Event.LIFE_GAIN, "ライフが増えた時:")
+    LIFE_LOSE = (Event.LIFE_LOSE, "ライフが減った時:")
+    DIE = (Event.DIE, "クリーチャーが死亡した時:")
+    DESTROY = (Event.DESTROY, "パーマネントが破壊された時:")
+    SACRIFICE = (Event.SACRIFICE, "パーマネントを生け贄に捧げた時:")
+    EXILE = (Event.EXILE, "カードが追放された時:")
+    PUT_INTO_GRAVEYARD = (Event.PUT_INTO_GRAVEYARD, "カードが墓地に置かれた時:")
+    CONJURE = (Event.CONJURE, "カードが創出された時:")
+
+
 class ProcessName:
     ASSISTANT_SEIKA = "AssistantSeika.exe"
     MTGATRACKER_BACKEND = "mtgatracker_backend.exe"
     SEIKA_SAY2 = "SeikaSay2.exe"
+
 
 class CommentaryBackend(tkinter.Frame):
     def __init__(self, master=None):
@@ -119,18 +212,18 @@ class CommentaryBackend(tkinter.Frame):
 
         # 変数
         self.config = {
-            Key.SEIKA_SAY2_PATH : ".\\"+ProcessName.SEIKA_SAY2,
-            Key.SPEAKER1 : {
-                Key.CID : 0,
-                Key.NAME : ""
+            ConfigKey.SEIKA_SAY2_PATH : ".\\"+ProcessName.SEIKA_SAY2,
+            ConfigKey.SPEAKER1 : {
+                ConfigKey.CID : 0,
+                ConfigKey.NAME : ""
             },
-            Key.SPEAKER2 : {
-                Key.CID : 0,
-                Key.NAME : ""
+            ConfigKey.SPEAKER2 : {
+                ConfigKey.CID : 0,
+                ConfigKey.NAME : ""
             },
-            Key.HERO_COMMENTARY_TYPE : Value.SPEAKER1,
-            Key.OPPONENT_COMMENTARY_TYPE : Value.SPEAKER1,
-            Key.MTGATRACKER_BACKEND_URL : "ws://localhost:8089"
+            ConfigKey.HERO_COMMENTARY_TYPE : ConfigValue.SPEAKER1,
+            ConfigKey.OPPONENT_COMMENTARY_TYPE : ConfigValue.SPEAKER1,
+            ConfigKey.MTGATRACKER_BACKEND_URL : "ws://localhost:8089"
         }
         self.cids = []
         self.speakers = []
@@ -143,10 +236,13 @@ class CommentaryBackend(tkinter.Frame):
 
         # GUI
         self.master.title("MTGA自動実況ツール")
-        self.master.geometry("640x480")
-        self.master_frame = ttk.Frame(self.master)
+        self.master.geometry("600x360")
+        self.master_frame = tkinter.Frame(self.master)
+        self.master_frame.pack()
         self.master_text = ScrolledText(self.master_frame)
         self.master_text.pack()
+        self.master_quit = tkinter.Button(self.master_frame, text="終了", command=self.master_frame_quit)
+        self.master_quit.pack()
 
         # logger
         self.logger = logging.getLogger(__name__)
@@ -172,7 +268,10 @@ class CommentaryBackend(tkinter.Frame):
             self.logger.info("Loading {}: OK".format(self.CONFIG_FILE))
         else:
             self.logger.info("Loading {}: NG".format(self.CONFIG_FILE))
-        self.seikasay2 = SeikaSay2(self.config.get(Key.SEIKA_SAY2_PATH))
+        self.seikasay2 = SeikaSay2(self.config.get(ConfigKey.SEIKA_SAY2_PATH))
+
+    def master_frame_quit(self):
+        self.master.destroy()
 
     def start_ws_client(self):
         import threading
@@ -181,7 +280,7 @@ class CommentaryBackend(tkinter.Frame):
 
     def connect_to_socket(self):
         websocket.enableTrace(False)
-        self.ws = websocket.WebSocketApp(self.config.get(Key.MTGATRACKER_BACKEND_URL),
+        self.ws = websocket.WebSocketApp(self.config.get(ConfigKey.MTGATRACKER_BACKEND_URL),
             on_open = self.on_open,
             on_message = self.on_message,
             on_error = self.on_error,
@@ -202,54 +301,56 @@ class CommentaryBackend(tkinter.Frame):
             json.dump(config if config else self.config, wf, indent=4, ensure_ascii=False)
     
     def open_config_window(self):
-        speaker1_index = self.cids.index(self.config.get(Key.SPEAKER1).get(Key.CID))
-        speaker2_index = self.cids.index(self.config.get(Key.SPEAKER2).get(Key.CID))
-        self.logger.debug("open_config_window")
+        speaker1_index = self.cids.index(self.config.get(ConfigKey.SPEAKER1).get(ConfigKey.CID))
+        speaker2_index = self.cids.index(self.config.get(ConfigKey.SPEAKER2).get(ConfigKey.CID))
         self.config_window = tkinter.Toplevel(self)
-        self.config_window.title("MTGA自動実況ツール")
-        self.config_window.geometry("480x240")
-        self.config_window.deiconify()  # 可視化する
+        self.config_window.title("MTGA自動実況ツール - 設定ウィンドウ")
+        self.config_window.geometry("520x190")
         self.config_window.grab_set()   # モーダルにする
         self.config_window.focus_set()  # フォーカスを新しいウィンドウをへ移す
         self.config_window.transient(self.master)   # タスクバーに表示しない
         self.config_frame = ttk.Frame(self.config_window)
-        self.config_frame.grid(column=0, row=0, sticky=tkinter.NSEW, padx=5, pady=10)
+        self.config_frame.grid(column=0, row=0, sticky=tkinter.NSEW, padx=5, pady=5)
         self.sv_seikasay2_path = tkinter.StringVar()
-        self.sv_seikasay2_path.set(self.config.get(Key.SEIKA_SAY2_PATH))
+        self.sv_seikasay2_path.set(self.config.get(ConfigKey.SEIKA_SAY2_PATH))
         self.sv_speaker1 = tkinter.StringVar()
         self.sv_speaker2 = tkinter.StringVar()
         self.sv_hero_commentary_type = tkinter.StringVar()
         self.sv_opponent_commentary_type = tkinter.StringVar()
-        label_seikasay2 = ttk.Label(self.config_frame, text="SeikaSay2のパス: ", anchor="w")
-        label_seikasay2.grid(row=0, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
-        entry_seikasay2 = ttk.Entry(self.config_frame, width=40, textvariable=self.sv_seikasay2_path)
-        entry_seikasay2.grid(row=0, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
+        #label_seikasay2 = ttk.Label(self.config_frame, text="SeikaSay2のパス: ", anchor="w")
+        #label_seikasay2.grid(row=0, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
+        #entry_seikasay2 = ttk.Entry(self.config_frame, width=40, textvariable=self.sv_seikasay2_path)
+        #entry_seikasay2.grid(row=0, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
         button_seikasay2 = tkinter.Button(self.config_frame, text="参照", command=self.config_window_seikasay2)
         button_seikasay2.grid(row=0, column=2, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
         label_speaker1 = ttk.Label(self.config_frame, text="話者1: ", anchor="w")
-        label_speaker1.grid(row=1, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
+        label_speaker1.grid(row=0, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
         combobox_speaker1 = ttk.Combobox(self.config_frame, width=40, values=self.speakers, textvariable=self.sv_speaker1, state="readonly")
         combobox_speaker1.current(speaker1_index)
-        combobox_speaker1.grid(row=1, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
+        combobox_speaker1.grid(row=0, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
+        button_speaker1 = tkinter.Button(self.config_frame, text="編集", command=lambda: self.open_speaker_window(self.sv_speaker1.get().split(" ")[0]))
+        button_speaker1.grid(row=0, column=2, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
         label_speaker2 = ttk.Label(self.config_frame, text="話者2: ", anchor="w")
-        label_speaker2.grid(row=2, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
+        label_speaker2.grid(row=1, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
         combobox_speaker2 = ttk.Combobox(self.config_frame, width=40, values=self.speakers, textvariable=self.sv_speaker2, state="readonly")
         combobox_speaker2.current(speaker2_index)
-        combobox_speaker2.grid(row=2, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
+        combobox_speaker2.grid(row=1, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
+        button_speaker2 = tkinter.Button(self.config_frame, text="編集", command=lambda: self.open_speaker_window(self.sv_speaker2.get().split(" ")[0]))
+        button_speaker2.grid(row=1, column=2, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
         label_hero_commentary_type = ttk.Label(self.config_frame, text="自分のアクション: ", anchor="w")
-        label_hero_commentary_type.grid(row=3, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
+        label_hero_commentary_type.grid(row=2, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
         combobox_hero_commentary_type = ttk.Combobox(self.config_frame, width=40, values=self.HERO_COMMENTARY_TYPES, textvariable=self.sv_hero_commentary_type, state="readonly")
-        combobox_hero_commentary_type.current(0 if self.config.get(Key.HERO_COMMENTARY_TYPE) == Value.SPEAKER1 else 1)
-        combobox_hero_commentary_type.grid(row=3, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
+        combobox_hero_commentary_type.current(0 if self.config.get(ConfigKey.HERO_COMMENTARY_TYPE) == ConfigValue.SPEAKER1 else 1)
+        combobox_hero_commentary_type.grid(row=2, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
         label_opponent_commentary_type = ttk.Label(self.config_frame, text="対戦相手のアクション: ", anchor="w")
-        label_opponent_commentary_type.grid(row=4, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
+        label_opponent_commentary_type.grid(row=3, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
         combobox_opponent_commentary_type = ttk.Combobox(self.config_frame, width=40, values=self.OPPONENT_COMMENTARY_TYPES, textvariable=self.sv_opponent_commentary_type, state="readonly")
-        combobox_opponent_commentary_type.current(0 if self.config.get(Key.OPPONENT_COMMENTARY_TYPE) == Value.SPEAKER1 else 1 if self.config.get(Key.OPPONENT_COMMENTARY_TYPE) == Value.SPEAKER2 else 2)
-        combobox_opponent_commentary_type.grid(row=4, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
-        button_ok = tkinter.Button(self.config_frame, text="OK", command=self.config_window_ok)
-        button_ok.grid(row=5, column=1, sticky=tkinter.E, padx=5, pady=5)
-        button_cancel = tkinter.Button(self.config_frame, text="キャンセル", command=self.config_window_cancel)
-        button_cancel.grid(row=5, column=2, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
+        combobox_opponent_commentary_type.current(0 if self.config.get(ConfigKey.OPPONENT_COMMENTARY_TYPE) == ConfigValue.SPEAKER1 else 1 if self.config.get(ConfigKey.OPPONENT_COMMENTARY_TYPE) == ConfigValue.SPEAKER2 else 2)
+        combobox_opponent_commentary_type.grid(row=3, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
+        button_ok = tkinter.Button(self.config_frame, text="保存して開始", command=self.config_window_ok)
+        button_ok.grid(row=4, column=1, sticky=tkinter.E, padx=5, pady=10)
+        button_cancel = tkinter.Button(self.config_frame, text="保存しないで開始", command=self.config_window_cancel)
+        button_cancel.grid(row=4, column=2, sticky=tkinter.W + tkinter.E, padx=5, pady=10)
         self.wait_window(self.config_window)
     
     def config_window_seikasay2(self):
@@ -257,23 +358,85 @@ class CommentaryBackend(tkinter.Frame):
         self.sv_seikasay2_path.set(path)
 
     def config_window_ok(self):
-        self.config[Key.SEIKA_SAY2_PATH] = self.sv_seikasay2_path.get()
-        self.config[Key.SPEAKER1][Key.CID] = int(self.sv_speaker1.get().split(" ")[0])
-        self.config[Key.SPEAKER1][Key.NAME] = self.sv_speaker1.get()
-        self.config[Key.SPEAKER2][Key.CID] = int(self.sv_speaker2.get().split(" ")[0])
-        self.config[Key.SPEAKER2][Key.NAME] = self.sv_speaker2.get()
-        self.config[Key.HERO_COMMENTARY_TYPE] = \
-            Value.SPEAKER1 if self.sv_hero_commentary_type.get() == self.HERO_COMMENTARY_TYPES[0] \
-            else Value.NEVER
-        self.config[Key.OPPONENT_COMMENTARY_TYPE] = \
-            Value.SPEAKER1 if self.sv_opponent_commentary_type.get() == self.OPPONENT_COMMENTARY_TYPES[0] \
-            else Value.SPEAKER2 if self.sv_opponent_commentary_type.get() == self.OPPONENT_COMMENTARY_TYPES[1] \
-            else Value.NEVER
+        self.config[ConfigKey.SEIKA_SAY2_PATH] = self.sv_seikasay2_path.get()
+        self.config[ConfigKey.SPEAKER1][ConfigKey.CID] = self.sv_speaker1.get().split(" ")[0]
+        self.config[ConfigKey.SPEAKER1][ConfigKey.NAME] = self.sv_speaker1.get()
+        self.config[ConfigKey.SPEAKER2][ConfigKey.CID] = self.sv_speaker2.get().split(" ")[0]
+        self.config[ConfigKey.SPEAKER2][ConfigKey.NAME] = self.sv_speaker2.get()
+        self.config[ConfigKey.HERO_COMMENTARY_TYPE] = \
+            ConfigValue.SPEAKER1 if self.sv_hero_commentary_type.get() == self.HERO_COMMENTARY_TYPES[0] \
+            else ConfigValue.NEVER
+        self.config[ConfigKey.OPPONENT_COMMENTARY_TYPE] = \
+            ConfigValue.SPEAKER1 if self.sv_opponent_commentary_type.get() == self.OPPONENT_COMMENTARY_TYPES[0] \
+            else ConfigValue.SPEAKER2 if self.sv_opponent_commentary_type.get() == self.OPPONENT_COMMENTARY_TYPES[1] \
+            else ConfigValue.NEVER
         self.save_config()
         self.config_window.destroy()
 
     def config_window_cancel(self):
         self.config_window.destroy()
+
+    def open_speaker1_window(self):
+        self.open_speaker_window(self.sv_speaker1.get().split(" ")[0])
+
+    def open_speaker2_window(self):
+        self.open_speaker_window(self.sv_speaker2.get().split(" ")[0])
+
+    def get_speak_obj(self, speakers, event):
+        for obj in speakers:
+            if obj.get(SpeakerKey.EVENT) == event:
+                return obj.get(SpeakerKey.SPEAK)
+        return None
+
+    def open_speaker_window(self, cid):
+        speakers = self.load_speaker(cid)
+        self.speaker_window = tkinter.Toplevel(self.config_window)
+        self.speaker_window.title("MTGA自動実況ツール - 話者ウィンドウ - {}".format(self.get_speaker_name(cid)))
+        self.speaker_window.geometry("940x600")
+        self.speaker_window.grab_set()   # モーダルにする
+        self.speaker_window.focus_set()  # フォーカスを新しいウィンドウをへ移す
+        self.speaker_window.transient(self.master)   # タスクバーに表示しない
+        self.speaker_frame = ttk.Frame(self.speaker_window)
+        self.speaker_frame.grid(column=0, row=0, sticky=tkinter.NSEW, padx=5, pady=5)
+        
+        label1 = ttk.Label(self.speaker_frame, text="自分のアクション（一人称）", anchor="w")
+        label1.grid(row=0, column=1, sticky=tkinter.W + tkinter.E, padx=4, pady=2)
+        label2 = ttk.Label(self.speaker_frame, text="対戦相手のアクション（三人称）", anchor="w")
+        label2.grid(row=0, column=2, sticky=tkinter.W + tkinter.E, padx=4, pady=2)
+        label3 = ttk.Label(self.speaker_frame, text="対戦相手のアクション（一人称）", anchor="w")
+        label3.grid(row=0, column=3, sticky=tkinter.W + tkinter.E, padx=4, pady=2)
+
+        labels = {}
+        svs = {}
+        entrys = {}
+        i = 1
+        for key in SpeakerWindowEntry:
+            labels[key.name] = ttk.Label(self.speaker_frame, text=key.value[1], anchor="w")
+            labels[key.name].grid(row=i, column=0, sticky=tkinter.W + tkinter.E, padx=4, pady=2)
+            svs[key.name] = []
+            entrys[key.name] = []
+            for j in range(3):
+                svs[key.name].append(StringVar())
+                svs[key.name][j].set(self.get_speak_obj(speakers, key.value[0])[j].get(SpeakerKey.TEXT))
+                entrys[key.name].append(ttk.Entry(self.speaker_frame, width=40, textvariable=svs[key.name][j]))
+                entrys[key.name][j].grid(row=i, column=j+1, sticky=tkinter.W + tkinter.E, padx=4, pady=2)
+            i += 1
+        
+        button_ok = tkinter.Button(self.speaker_frame, text="保存して閉じる", command=lambda: self.speaker_window_ok(cid, speakers, svs))
+        button_ok.grid(row=i, column=2, sticky=tkinter.W + tkinter.E, padx=4, pady=10)
+        button_cancel = tkinter.Button(self.speaker_frame, text="保存しないで閉じる", command=self.speaker_window_cancel)
+        button_cancel.grid(row=i, column=3, sticky=tkinter.W + tkinter.E, padx=4, pady=10)
+        self.wait_window(self.speaker_window)
+
+    def speaker_window_ok(self, cid, speakers, svs):
+        for key in SpeakerWindowEntry:
+            for j in range(3):
+                self.get_speak_obj(speakers, key.value[0])[j][SpeakerKey.TEXT] = svs[key.name][j].get()
+        self.save_speaker(cid, speakers)
+        self.speaker_window.destroy()
+
+    def speaker_window_cancel(self):
+        self.speaker_window.destroy()
 
     def load_speaker(self, cid):
         speaker_file = "config\\{}.json".format(cid)
@@ -281,19 +444,6 @@ class CommentaryBackend(tkinter.Frame):
             speaker_file = self.DEFAULT_SPEAKER_FILE
         with open(speaker_file, 'r', encoding="utf_8_sig") as rf:
             return json.load(rf)
-
-    def load_speakers(self):
-        speaker_file = "config\\{}.json".format(self.config.get(Key.SPEAKER1).get(Key.CID))
-        if not os.path.isfile(speaker_file):
-            speaker_file = self.DEFAULT_SPEAKER_FILE
-        with open(speaker_file, 'r', encoding="utf_8_sig") as rf:
-            self.speaker1_obj = json.load(rf)
-
-        speaker_file = "config\\{}.json".format(self.config.get(Key.SPEAKER2).get(Key.CID))
-        if not os.path.isfile(speaker_file):
-            speaker_file = self.DEFAULT_SPEAKER_FILE
-        with open(speaker_file, 'r', encoding="utf_8_sig") as rf:
-            self.speaker2_obj = json.load(rf)
 
     def save_speaker(self, cid, speaker):
         speaker_file = "config\\{}.json".format(cid)
@@ -306,7 +456,7 @@ class CommentaryBackend(tkinter.Frame):
     def parse(self, blob):
         self.logger.debug(blob)
         if blob:
-            text_array = blob.get(Key.GAME_HISTORY_EVENT)
+            text_array = blob.get(MessageKey.GAME_HISTORY_EVENT)
             if not text_array:
                 return None
             parsed = {}
@@ -314,190 +464,216 @@ class CommentaryBackend(tkinter.Frame):
             if len(text_array) == 0:
                 self.logger.warning("warning: 長さ0のtext_array")
             elif len(text_array) == 1:
-                if text_array[0].get(Key.TYPE) == Value.GAME:
-                    parsed[Key.MESSAGE_TYPE] = text_array[0].get(Key.TYPE)
-                elif text_array[0].get(Key.TYPE) == Value.TURN:
-                    if text_array[0].get(Key.TEXT).find(self.opponent_screen_name) >= 0:
-                        parsed[Key.IS_OPPONENT] = True
-                    parsed[Key.MESSAGE_TYPE] = text_array[0].get(Key.TYPE)
+                if text_array[0].get(MessageKey.TYPE) == MessageValue.GAME: # ゲーム終了  {"text": "screenName won!", "type": "game"}
+                    parsed[ParseKey.MESSAGE_TYPE] = text_array[0].get(MessageKey.TYPE)
+                    if text_array[0].get(MessageKey.TEXT).startswith(self.opponent_screen_name):
+                        parsed[ParseKey.IS_OPPONENT] = True
+                        parsed[ParseKey.EVENT] = Event.GAME_LOSE
+                    else:
+                        parsed[ParseKey.EVENT] = Event.GAME_WIN
+                elif text_array[0].get(MessageKey.TYPE) == MessageValue.TURN:   # ターン開始  { "text": "N / screenName Turn M", "type": "turn" }
+                    if text_array[0].get(MessageKey.TEXT).find(self.opponent_screen_name) >= 0:
+                        parsed[ParseKey.IS_OPPONENT] = True
+                    parsed[ParseKey.MESSAGE_TYPE] = text_array[0].get(MessageKey.TYPE)
+                    parsed[ParseKey.EVENT] = Event.TURN_START
                 else:
-                    self.logger.warning("warning: 不明なtype: {}".format(text_array[0].get(Key.TYPE)))
+                    self.logger.warning("warning: 不明なtype: {}".format(text_array[0].get(MessageKey.TYPE)))
             else:
-                parsed[Key.VERB] = text_array[1].strip()
-                if parsed.get(Key.VERB) == "'s":    # "'s"が入った場合はガチャガチャする
-                    parsed[Key.SOURCE] = text_array[0].get(Key.TEXT)
-                    parsed[Key.IS_OPPONENT] = True if text_array[0].get(Key.TYPE) == Value.OPPONENT else False
-                    parsed[Key.MESSAGE_TYPE] = text_array[2].get(Key.TYPE)    # ability
+                parsed[ParseKey.VERB] = text_array[1].strip()
+
+                # 動詞が"'s"の場合はガチャガチャする
+                if parsed.get(ParseKey.VERB) == "'s":   # { "text": カード名, "type": hero/opponent }, "'s ", { "text": ability, "type": "ability"}, ...
+                    parsed[ParseKey.SOURCE] = text_array[0].get(MessageKey.TEXT)
+                    parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
+                    parsed[ParseKey.MESSAGE_TYPE] = text_array[2].get(MessageKey.TYPE)    # ability
+
+                    # ":"が入らない場合は"'s'"の直後を主語にする
                     if len(text_array) >= 4 and text_array[3].strip() != ":":   # ex: "CARDNAME1 's ability exiles CARDNAME2"
                         text_array = text_array[2:]
+
+                    # ":"が入る場合は":"の直後を主語にする
                     elif len(text_array) >= 6 and text_array[3].strip() == ":": # ex: "CARDNAME1 's ability : SCREENNAME draws CARDNAME2"
                         text_array = text_array[4:]
-                    parsed[Key.VERB] = text_array[1].strip()
-                    if parsed.get(Key.VERB) == "'s":
-                        self.logger.warning("warning: 不明なtext_array: {}".format(text_array))
+                    parsed[ParseKey.VERB] = text_array[1].strip()
 
-                if parsed.get(Key.VERB) == ":":    # ":"が入った場合はガチャガチャする
-                    parsed[Key.SOURCE] = text_array[0].get(Key.TEXT)
+                # 動詞が":"の場合は":"の直後を主語にする
+                if parsed.get(ParseKey.VERB) == ":":    # { "text": カード名, "type": "opponent" }, ": ", { "text": screenName, "type": "opponent" }, ...
+                    parsed[ParseKey.SOURCE] = text_array[0].get(MessageKey.TEXT)
                     if len(text_array) >= 4:   # ex: "CARDNAME1 : SCREENNAME draws CARDNAME2"
                         text_array = text_array[2:]
-                    parsed[Key.VERB] = text_array[1].strip()
-                    if parsed.get(Key.VERB) == ":":
-                        self.logger.warning("warning: 不明なtext_array: {}".format(text_array))
+                    parsed[ParseKey.VERB] = text_array[1].strip()
 
-                if parsed.get(Key.VERB) == Verb.ATTAKING:
-                    parsed[Key.IS_OPPONENT] = True if text_array[0].get(Key.TYPE) == Value.OPPONENT else False
-                    parsed[Key.ATTACKER] = self.del_ruby(text_array[0].get(Key.TEXT))
-                elif parsed.get(Key.VERB) == Verb.BLOCKS:
-                    parsed[Key.IS_OPPONENT] = True if text_array[0].get(Key.TYPE) == Value.OPPONENT else False
-                    parsed[Key.BLOCKER] = self.del_ruby(text_array[0].get(Key.TEXT))
-                    parsed[Key.ATTACKER] = self.del_ruby(text_array[2].get(Key.TEXT))
-                elif parsed.get(Key.VERB) == Verb.CASTS:
-                    parsed[Key.IS_OPPONENT] = True if text_array[0].get(Key.TYPE) == Value.OPPONENT else False
-                    parsed[Key.CARD] = self.del_ruby(text_array[2].get(Key.TEXT))
-                elif parsed.get(Key.VERB) == Verb.DRAWS:
-                    parsed[Key.IS_OPPONENT] = True if text_array[0].get(Key.TYPE) == Value.OPPONENT else False
+                if parsed.get(ParseKey.VERB) == Verb.ATTAKING:  # 攻撃クリーチャー指定時  { "text": カード名, "type": hero/opponent }, " attacking"
+                    parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
+                    parsed[ParseKey.ATTACKER] = self.del_ruby(text_array[0].get(MessageKey.TEXT))
+                    parsed[ParseKey.CARD] = parsed[ParseKey.ATTACKER]   # 念のため
+                    parsed[ParseKey.EVENT] = Event.ATTACK
+                elif parsed.get(ParseKey.VERB) == Verb.BLOCKS:
+                    parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
+                    parsed[ParseKey.BLOCKER] = self.del_ruby(text_array[0].get(MessageKey.TEXT))
+                    parsed[ParseKey.ATTACKER] = self.del_ruby(text_array[2].get(MessageKey.TEXT))
+                    parsed[ParseKey.CARD] = parsed[ParseKey.BLOCKER]   # 念のため
+                    parsed[ParseKey.SOURCE] = parsed[ParseKey.BLOCKER]   # 念のため
+                    parsed[ParseKey.TARGET] = parsed[ParseKey.ATTACKER]   # 念のため
+                    parsed[ParseKey.EVENT] = Event.BLOCK
+                elif parsed.get(ParseKey.VERB) == Verb.CASTS:
+                    parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
+                    parsed[ParseKey.CARD] = self.del_ruby(text_array[2].get(MessageKey.TEXT))
+                    parsed[ParseKey.EVENT] = Event.CAST_SPELL
+                elif parsed.get(ParseKey.VERB) == Verb.COUNTERS:
+                    parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
+                    parsed[ParseKey.SOURCE] = self.del_ruby(text_array[0].get(MessageKey.TEXT))
+                    parsed[ParseKey.TARGET] = self.del_ruby(text_array[2].get(MessageKey.TEXT))
+                    parsed[ParseKey.CARD] = parsed[ParseKey.TARGET] # 念のため
+                    parsed[ParseKey.EVENT] = Event.COUNTERED
+                elif parsed.get(ParseKey.VERB) == Verb.DRAWS:
+                    parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
                     if len(text_array) >= 3:
-                        parsed[Key.CARD] = self.del_ruby(text_array[2].get(Key.TEXT))
-                elif parsed.get(Key.VERB) == Verb.EXILES:
-                    parsed[Key.IS_OPPONENT] = True if text_array[2].get(Key.TYPE) == Value.OPPONENT else False
-                    parsed[Key.CARD] = self.del_ruby(text_array[2].get(Key.TEXT))
-                elif parsed.get(Key.VERB) == Verb.LIFE_TOTAL_CHANGED:
-                    parsed[Key.IS_OPPONENT] = True if text_array[0].get(Key.TYPE) == Value.OPPONENT else False
-                    parsed[Key.LIFE_FROM] = int(text_array[2].split(" -> ")[0])
-                    parsed[Key.LIFE_TO] = int(text_array[2].split(" -> ")[1])
-                    parsed[Key.LIFE_DIFF] = parsed[Key.LIFE_TO] - parsed[Key.LIFE_FROM]
-                elif parsed.get(Key.VERB) == Verb.PLAYS:
-                    parsed[Key.IS_OPPONENT] = True if text_array[0].get(Key.TYPE) == Value.OPPONENT else False
-                    parsed[Key.CARD] = self.del_ruby(text_array[2].get(Key.TEXT))
-                elif parsed.get(Key.VERB) == Verb.RESOLVES:
-                    parsed[Key.IS_OPPONENT] = True if text_array[0].get(Key.TYPE) == Value.OPPONENT else False
-                    parsed[Key.CARD] = self.del_ruby(text_array[0].get(Key.TEXT))
-                elif parsed.get(Key.VERB) == Verb.SENT_TO_GRAVEYARD:
-                    parsed[Key.IS_OPPONENT] = True if text_array[0].get(Key.TYPE) == Value.OPPONENT else False
-                    parsed[Key.CARD] = self.del_ruby(text_array[0].get(Key.TEXT))
-                    parsed[Key.REASON] = text_array[2]
-                    if parsed.get(Key.REASON) not in [
-                        Reason.CONJURE,
-                        Reason.DESTROY,
-                        Reason.DISCARD,
-                        Reason.MILL,
-                        Reason.PUT,
-                        Reason.SACRIFICE,
-                        Reason.SBA_DAMEGE,
-                        Reason.SBA_DEATHTOUCH,
-                        Reason.SBA_ZERO_TOUGHNESS,
-                        Reason.SBA_UNATTACHED_AURA,
-                        Reason.NIL
-                    ]:
-                        self.logger.warning("warning: 不明なreason: {}".format(parsed.get(Key.REASON)))
-                elif parsed.get(Key.VERB) == Verb.STARTING_HAND:
-                    pass
-                elif parsed.get(Key.VERB) == Verb.VS:
-                    self.hero_screen_name = text_array[0].get(Key.TEXT)
-                    self.opponent_screen_name = text_array[2].get(Key.TEXT)
+                        parsed[ParseKey.CARD] = self.del_ruby(text_array[2].get(MessageKey.TEXT))
+                        parsed[ParseKey.TARGET] = parsed[ParseKey.CARD] # 念のため
+                    parsed[ParseKey.EVENT] = Event.DRAW
+                elif parsed.get(ParseKey.VERB) == Verb.EXILES:
+                    parsed[ParseKey.IS_OPPONENT] = True if text_array[2].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
+                    parsed[ParseKey.CARD] = self.del_ruby(text_array[2].get(MessageKey.TEXT))
+                    parsed[ParseKey.TARGET] = parsed[ParseKey.CARD] # 念のため
+                    parsed[ParseKey.EVENT] = Event.EXILE
+                elif parsed.get(ParseKey.VERB) == Verb.LIFE_TOTAL_CHANGED:
+                    parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
+                    parsed[ParseKey.LIFE_FROM] = int(text_array[2].split(" -> ")[0])
+                    parsed[ParseKey.LIFE_TO] = int(text_array[2].split(" -> ")[1])
+                    parsed[ParseKey.SOURCE] = parsed[ParseKey.LIFE_FROM] # 念のため
+                    parsed[ParseKey.TARGET] = parsed[ParseKey.LIFE_TO] # 念のため
+                    parsed[ParseKey.EVENT] = Event.LIFE_GAIN if parsed[ParseKey.LIFE_FROM] < parsed[ParseKey.LIFE_TO] else Event.LIFE_LOSE
+                    parsed[ParseKey.LIFE_DIFF] = abs(parsed[ParseKey.LIFE_TO] - parsed[ParseKey.LIFE_FROM])
+                elif parsed.get(ParseKey.VERB) == Verb.PLAYS:
+                    parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
+                    parsed[ParseKey.CARD] = self.del_ruby(text_array[2].get(MessageKey.TEXT))
+                    parsed[ParseKey.TARGET] = parsed[ParseKey.CARD] # 念のため
+                    parsed[ParseKey.EVENT] = Event.PLAY_LAND
+                elif parsed.get(ParseKey.VERB) == Verb.RESOLVES:
+                    parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
+                    parsed[ParseKey.CARD] = self.del_ruby(text_array[0].get(MessageKey.TEXT))
+                    parsed[ParseKey.TARGET] = parsed[ParseKey.CARD] # 念のため
+                    parsed[ParseKey.EVENT] = Event.RESOLVE
+                elif parsed.get(ParseKey.VERB) == Verb.SENT_TO_GRAVEYARD:
+                    parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
+                    parsed[ParseKey.CARD] = self.del_ruby(text_array[0].get(MessageKey.TEXT))
+                    parsed[ParseKey.TARGET] = parsed[ParseKey.CARD] # 念のため
+                    parsed[ParseKey.REASON] = text_array[2]
+                    if parsed.get(ParseKey.REASON) in [Reason.SBA_DAMEGE, Reason.SBA_DEATHTOUCH, Reason.SBA_ZERO_TOUGHNESS]: # 死亡（致死ダメージ、接死ダメージ、タフネス0未満）
+                        parsed[ParseKey.EVENT] = Event.DIE
+                    elif parsed.get(ParseKey.REASON) in [Reason.DESTROY]: # 破壊
+                        parsed[ParseKey.EVENT] = Event.DESTROY
+                    elif parsed.get(ParseKey.REASON) in [Reason.SACRIFICE]: # 生け贄
+                        parsed[ParseKey.EVENT] = Event.SACRIFICE
+                    elif parsed.get(ParseKey.REASON) in [Reason.CONJURE]: # 創出
+                        parsed[ParseKey.EVENT] = Event.CONJURE
+                    elif parsed.get(ParseKey.REASON) in [Reason.DISCARD]: # ディスカード
+                        parsed[ParseKey.EVENT] = Event.DISCARD
+                    elif parsed.get(ParseKey.REASON) in [Reason.MILL, Reason.PUT, Reason.SBA_UNATTACHED_AURA, Reason.NIL]: # 墓地に置く（切削、墓地にカードを置く効果、不正オーラ、対象不適正呪文）
+                        parsed[ParseKey.EVENT] = Event.PUT_INTO_GRAVEYARD
+                    else:
+                        self.logger.warning("warning: 不明なreason: {}".format(parsed.get(ParseKey.REASON)))
+                elif parsed.get(ParseKey.VERB) == Verb.STARTING_HAND:
+                    parsed[ParseKey.EVENT] = Event.MULLIGAN_CHECK
+                elif parsed.get(ParseKey.VERB) == Verb.VS:
+                    self.hero_screen_name = text_array[0].get(MessageKey.TEXT)
+                    self.opponent_screen_name = text_array[2].get(MessageKey.TEXT)
+                    parsed[ParseKey.SOURCE] = self.hero_screen_name # なんとなく
+                    parsed[ParseKey.TARGET] = self.opponent_screen_name # なんとなく
+                    parsed[ParseKey.EVENT] = Event.GAME_START
                 else:
-                    self.logger.warning("warning: 不明なverb: ".format(parsed.get(Key.VERB)))
+                    self.logger.warning("warning: 不明なverb: {}".format(parsed.get(ParseKey.VERB)))
 
             return parsed
         else:
             return None
 
     def gen_text(self, parsed):
-        if not parsed.get(Key.IS_OPPONENT):
-            if self.config.get(Key.HERO_COMMENTARY_TYPE) == Value.SPEAKER1:
-                cid = self.config.get(Key.SPEAKER1).get(Key.CID)
+        if not parsed.get(ParseKey.IS_OPPONENT):
+            if self.config.get(ConfigKey.HERO_COMMENTARY_TYPE) == ConfigValue.SPEAKER1:
+                cid = self.config.get(ConfigKey.SPEAKER1).get(ConfigKey.CID)
                 speaker = self.speaker1_obj
                 speak_idx = 0
             else:
                 return None
         else:
-            if self.config.get(Key.OPPONENT_COMMENTARY_TYPE) == Value.SPEAKER1:
-                cid = self.config.get(Key.SPEAKER1).get(Key.CID)
+            if self.config.get(ConfigKey.OPPONENT_COMMENTARY_TYPE) == ConfigValue.SPEAKER1:
+                cid = self.config.get(ConfigKey.SPEAKER1).get(ConfigKey.CID)
                 speaker = self.speaker1_obj
                 speak_idx = 1
-            elif self.config.get(Key.OPPONENT_COMMENTARY_TYPE) == Value.SPEAKER2:
-                cid = self.config.get(Key.SPEAKER2).get(Key.CID)
+            elif self.config.get(ConfigKey.OPPONENT_COMMENTARY_TYPE) == ConfigValue.SPEAKER2:
+                cid = self.config.get(ConfigKey.SPEAKER2).get(ConfigKey.CID)
                 speaker = self.speaker2_obj
                 speak_idx = 2
             else:
                 return None
         
         speak_obj = None
-        if parsed.get(Key.MESSAGE_TYPE) in [Value.GAME, Value.TURN]:
-            for obj in speaker:
-                if obj.get(Key.TYPE) == parsed.get(Key.MESSAGE_TYPE):
-                    speak_obj = obj.get(Key.SPEAK)[speak_idx]
-                    break
-        else:
-            for obj in speaker:
-                if obj.get(Key.VERB) == parsed.get(Key.VERB):
-                    if obj.get(Key.VERB) == Verb.SENT_TO_GRAVEYARD:
-                        if parsed.get(Key.REASON) not in obj.get(Key.REASON):
-                            continue
-                    if obj.get(Key.VERB) == Verb.LIFE_TOTAL_CHANGED:
-                        if obj.get(Key.LIFE) == Value.GAIN and parsed.get(Key.LIFE_DIFF) < 0:
-                            continue
-                        if obj.get(Key.LIFE) == Value.LOSE and parsed.get(Key.LIFE_DIFF) > 0:
-                            continue
-                        parsed[Key.LIFE_DIFF] = abs(parsed.get(Key.LIFE_DIFF))
-                    speak_obj = obj.get(Key.SPEAK)[speak_idx]
-                    break
+        for obj in speaker:
+            if obj.get(SpeakerKey.EVENT) == parsed.get(ParseKey.EVENT):
+                speak_obj = obj.get(SpeakerKey.SPEAK)[speak_idx]
+                break
         
-        text = speak_obj.get(Key.TEXT) \
-            .replace("{"+Key.ATTACKER+"}", parsed.get(Key.ATTACKER) if parsed.get(Key.ATTACKER) else "") \
-            .replace("{"+Key.BLOCKER+"}", parsed.get(Key.BLOCKER) if parsed.get(Key.BLOCKER) else "") \
-            .replace("{"+Key.CARD+"}", parsed.get(Key.CARD) if parsed.get(Key.CARD) else "") \
-            .replace("{"+Key.SOURCE+"}", parsed.get(Key.SOURCE) if parsed.get(Key.SOURCE) else "") \
-            .replace("{"+Key.LIFE_FROM+"}", str(parsed.get(Key.LIFE_FROM)) if str(parsed.get(Key.LIFE_FROM)) else "") \
-            .replace("{"+Key.LIFE_TO+"}", str(parsed.get(Key.LIFE_TO)) if str(parsed.get(Key.LIFE_TO)) else "") \
-            .replace("{"+Key.LIFE_DIFF+"}", str(parsed.get(Key.LIFE_DIFF)) if str(parsed.get(Key.LIFE_DIFF)) else "")
+        text = speak_obj.get(SpeakerKey.TEXT)
+        for word in ReplaceWord:
+            text = text.replace("{"+word.value+"}", str(parsed.get(word.value)) if str(parsed.get(word.value)) else "")
 
         speak_param_obj = {}
         for obj in speaker:
-            if obj.get(Key.TYPE) == Value.SEIKA_SAY2:
+            if obj.get(SpeakerKey.TYPE) == SpeakerValue.SEIKA_SAY2:
                 speak_param_obj = obj
                 break
         if not speak_param_obj:
-            speak_param_obj[Key.ASYNC] = speak_obj.get(Key.ASYNC) if speak_obj.get(Key.ASYNC) else speak_param_obj.get(Key.ASYNC)
-            speak_param_obj[Key.VOLUME] = speak_obj.get(Key.VOLUME) if speak_obj.get(Key.VOLUME) else speak_param_obj.get(Key.VOLUME)
-            speak_param_obj[Key.SPEED] = speak_obj.get(Key.SPEED) if speak_obj.get(Key.SPEED) else speak_param_obj.get(Key.SPEED)
-            speak_param_obj[Key.PITCH] = speak_obj.get(Key.PITCH) if speak_obj.get(Key.PITCH) else speak_param_obj.get(Key.PITCH)
-            speak_param_obj[Key.ALPHA] = speak_obj.get(Key.ALPHA) if speak_obj.get(Key.ALPHA) else speak_param_obj.get(Key.ALPHA)
-            speak_param_obj[Key.INTONATION] = speak_obj.get(Key.INTONATION) if speak_obj.get(Key.INTONATION) else speak_param_obj.get(Key.INTONATION)
-            speak_param_obj[Key.EMOTION_EP] = speak_obj.get(Key.EMOTION_EP) if speak_obj.get(Key.EMOTION_EP) else speak_param_obj.get(Key.EMOTION_EP)
-            speak_param_obj[Key.EMOTION_P] = speak_obj.get(Key.EMOTION_P) if speak_obj.get(Key.EMOTION_P) else speak_param_obj.get(Key.EMOTION_P)
-            speak_param_obj[Key.OVER_BANNER] = speak_obj.get(Key.OVER_BANNER) if speak_obj.get(Key.OVER_BANNER) else speak_param_obj.get(Key.OVER_BANNER)
+            speak_param_obj[SpeakerParamKey.ASYNC] = speak_obj.get(SpeakerParamKey.ASYNC) if speak_obj.get(SpeakerParamKey.ASYNC) else speak_param_obj.get(SpeakerParamKey.ASYNC)
+            speak_param_obj[SpeakerParamKey.VOLUME] = speak_obj.get(SpeakerParamKey.VOLUME) if speak_obj.get(SpeakerParamKey.VOLUME) else speak_param_obj.get(SpeakerParamKey.VOLUME)
+            speak_param_obj[SpeakerParamKey.SPEED] = speak_obj.get(SpeakerParamKey.SPEED) if speak_obj.get(SpeakerParamKey.SPEED) else speak_param_obj.get(SpeakerParamKey.SPEED)
+            speak_param_obj[SpeakerParamKey.PITCH] = speak_obj.get(SpeakerParamKey.PITCH) if speak_obj.get(SpeakerParamKey.PITCH) else speak_param_obj.get(SpeakerParamKey.PITCH)
+            speak_param_obj[SpeakerParamKey.ALPHA] = speak_obj.get(SpeakerParamKey.ALPHA) if speak_obj.get(SpeakerParamKey.ALPHA) else speak_param_obj.get(SpeakerParamKey.ALPHA)
+            speak_param_obj[SpeakerParamKey.INTONATION] = speak_obj.get(SpeakerParamKey.INTONATION) if speak_obj.get(SpeakerParamKey.INTONATION) else speak_param_obj.get(SpeakerParamKey.INTONATION)
+            speak_param_obj[SpeakerParamKey.EMOTION_EP] = speak_obj.get(SpeakerParamKey.EMOTION_EP) if speak_obj.get(SpeakerParamKey.EMOTION_EP) else speak_param_obj.get(SpeakerParamKey.EMOTION_EP)
+            speak_param_obj[SpeakerParamKey.EMOTION_P] = speak_obj.get(SpeakerParamKey.EMOTION_P) if speak_obj.get(SpeakerParamKey.EMOTION_P) else speak_param_obj.get(SpeakerParamKey.EMOTION_P)
+            speak_param_obj[SpeakerParamKey.OVER_BANNER] = speak_obj.get(SpeakerParamKey.OVER_BANNER) if speak_obj.get(SpeakerParamKey.OVER_BANNER) else speak_param_obj.get(SpeakerParamKey.OVER_BANNER)
         else:
-            speak_param_obj[Key.ASYNC] = speak_obj.get(Key.ASYNC)
-            speak_param_obj[Key.VOLUME] = speak_obj.get(Key.VOLUME)
-            speak_param_obj[Key.SPEED] = speak_obj.get(Key.SPEED)
-            speak_param_obj[Key.PITCH] = speak_obj.get(Key.PITCH)
-            speak_param_obj[Key.ALPHA] = speak_obj.get(Key.ALPHA)
-            speak_param_obj[Key.INTONATION] = speak_obj.get(Key.INTONATION)
-            speak_param_obj[Key.EMOTION_EP] = speak_obj.get(Key.EMOTION_EP)
-            speak_param_obj[Key.EMOTION_P] = speak_obj.get(Key.EMOTION_P)
-            speak_param_obj[Key.OVER_BANNER] = speak_obj.get(Key.OVER_BANNER)
+            speak_param_obj[SpeakerParamKey.ASYNC] = speak_obj.get(SpeakerParamKey.ASYNC)
+            speak_param_obj[SpeakerParamKey.VOLUME] = speak_obj.get(SpeakerParamKey.VOLUME)
+            speak_param_obj[SpeakerParamKey.SPEED] = speak_obj.get(SpeakerParamKey.SPEED)
+            speak_param_obj[SpeakerParamKey.PITCH] = speak_obj.get(SpeakerParamKey.PITCH)
+            speak_param_obj[SpeakerParamKey.ALPHA] = speak_obj.get(SpeakerParamKey.ALPHA)
+            speak_param_obj[SpeakerParamKey.INTONATION] = speak_obj.get(SpeakerParamKey.INTONATION)
+            speak_param_obj[SpeakerParamKey.EMOTION_EP] = speak_obj.get(SpeakerParamKey.EMOTION_EP)
+            speak_param_obj[SpeakerParamKey.EMOTION_P] = speak_obj.get(SpeakerParamKey.EMOTION_P)
+            speak_param_obj[SpeakerParamKey.OVER_BANNER] = speak_obj.get(SpeakerParamKey.OVER_BANNER)
 
         return cid, text, speak_param_obj
 
     def get_speaker_list(self):
         self.cids, self.speakers = self.seikasay2.list()
         return self.cids, self.speakers
-    
+
+    def get_speaker_name(self, cid):
+        for speaker in self.speakers:
+            if speaker.startswith(cid):
+                try:
+                    return re.sub("^"+cid, "", speaker).split(" - ")[0].strip()
+                except:
+                    return None
+        return None
+
     def speak(self, cid, text, speak_param_obj={}):
         if cid and text:
             speaked_text = self.seikasay2.speak( \
                 cid=cid, \
                 text=text, \
-                asynchronize=speak_param_obj.get(Key.ASYNC), \
-                volume=speak_param_obj.get(Key.VOLUME), \
-                speed=speak_param_obj.get(Key.SPEED), \
-                pitch=speak_param_obj.get(Key.PITCH), \
-                alpha=speak_param_obj.get(Key.ALPHA), \
-                intonation=speak_param_obj.get(Key.INTONATION), \
-                emotionEP=speak_param_obj.get(Key.EMOTION_EP), \
-                emotionP=speak_param_obj.get(Key.EMOTION_P), \
-                overBanner=speak_param_obj.get(Key.OVER_BANNER) \
+                asynchronize=speak_param_obj.get(SpeakerParamKey.ASYNC), \
+                volume=speak_param_obj.get(SpeakerParamKey.VOLUME), \
+                speed=speak_param_obj.get(SpeakerParamKey.SPEED), \
+                pitch=speak_param_obj.get(SpeakerParamKey.PITCH), \
+                alpha=speak_param_obj.get(SpeakerParamKey.ALPHA), \
+                intonation=speak_param_obj.get(SpeakerParamKey.INTONATION), \
+                emotionEP=speak_param_obj.get(SpeakerParamKey.EMOTION_EP), \
+                emotionP=speak_param_obj.get(SpeakerParamKey.EMOTION_P), \
+                overBanner=speak_param_obj.get(SpeakerParamKey.OVER_BANNER) \
             )
             return speaked_text
         else:
@@ -507,15 +683,18 @@ class CommentaryBackend(tkinter.Frame):
         parsed = self.parse(json.loads(message))
         if parsed:
             self.logger.debug(parsed)
-            cid = 0
+            cid = ""
             text = ""
             speak_param_obj = {}
             cid, text, speak_param_obj = self.gen_text(parsed)
             if cid and text:
-                speaked_text = self.speak(cid, text, speak_param_obj)
-                if speaked_text:
-                    self.logger.info(speaked_text)
-                    self.master_text.insert("end", speaked_text)
+                speaker = self.get_speaker_name(cid)
+                if not speaker:
+                    speaker = ""
+                self.logger.info(speaker+"「"+text+"」")
+                self.master_text.insert("end", speaker+"「"+text+"」\n")
+                self.master_text.yview_moveto(1)
+                self.speak(cid, text, speak_param_obj)
 
     def on_error(self, ws, error):
         self.logger.error("error: called on_error")
@@ -550,17 +729,17 @@ class CommentaryBackend(tkinter.Frame):
         return False
 
     def speak_config(self):
-        if self.config[Key.HERO_COMMENTARY_TYPE] == Value.SPEAKER1 and self.config[Key.OPPONENT_COMMENTARY_TYPE] == Value.SPEAKER1:
-            self.speak(self.config[Key.SPEAKER1][Key.CID], "自分と対戦相手のアクションを実況します。")
-        elif self.config[Key.HERO_COMMENTARY_TYPE] == Value.SPEAKER1 and self.config[Key.OPPONENT_COMMENTARY_TYPE] == Value.SPEAKER2:
-            self.speak(self.config[Key.SPEAKER1][Key.CID], "自分のアクションを実況します。")
-            self.speak(self.config[Key.SPEAKER2][Key.CID], "対戦相手のアクションを実況します。")
-        elif self.config[Key.HERO_COMMENTARY_TYPE] == Value.SPEAKER1:
-            self.speak(self.config[Key.SPEAKER1][Key.CID], "自分のアクションだけを実況します。")
-        elif self.config[Key.OPPONENT_COMMENTARY_TYPE] == Value.SPEAKER1:
-            self.speak(self.config[Key.SPEAKER1][Key.CID], "対戦相手のアクションだけを実況します。")
-        elif self.config[Key.OPPONENT_COMMENTARY_TYPE] == Value.SPEAKER2:
-            self.speak(self.config[Key.SPEAKER2][Key.CID], "対戦相手のアクションを実況します。")
+        if self.config[ConfigKey.HERO_COMMENTARY_TYPE] == ConfigValue.SPEAKER1 and self.config[ConfigKey.OPPONENT_COMMENTARY_TYPE] == ConfigValue.SPEAKER1:
+            self.speak(self.config[ConfigKey.SPEAKER1][ConfigKey.CID], "自分と対戦相手のアクションを実況します。")
+        elif self.config[ConfigKey.HERO_COMMENTARY_TYPE] == ConfigValue.SPEAKER1 and self.config[ConfigKey.OPPONENT_COMMENTARY_TYPE] == ConfigValue.SPEAKER2:
+            self.speak(self.config[ConfigKey.SPEAKER1][ConfigKey.CID], "自分のアクションを実況します。")
+            self.speak(self.config[ConfigKey.SPEAKER2][ConfigKey.CID], "対戦相手のアクションを実況します。")
+        elif self.config[ConfigKey.HERO_COMMENTARY_TYPE] == ConfigValue.SPEAKER1:
+            self.speak(self.config[ConfigKey.SPEAKER1][ConfigKey.CID], "自分のアクションだけを実況します。")
+        elif self.config[ConfigKey.OPPONENT_COMMENTARY_TYPE] == ConfigValue.SPEAKER1:
+            self.speak(self.config[ConfigKey.SPEAKER1][ConfigKey.CID], "対戦相手のアクションだけを実況します。")
+        elif self.config[ConfigKey.OPPONENT_COMMENTARY_TYPE] == ConfigValue.SPEAKER2:
+            self.speak(self.config[ConfigKey.SPEAKER2][ConfigKey.CID], "対戦相手のアクションを実況します。")
 
     def run(self):
         self.logger.info("mtgatracker_backend.exe running check")
@@ -609,25 +788,26 @@ class CommentaryBackend(tkinter.Frame):
         
         self.logger.debug(self.speakers)
 
-        if not self.config.get(Key.SPEAKER1).get(Key.CID):
-            self.config[Key.SPEAKER1][Key.CID] = self.cids[0]
-        if not self.config.get(Key.SPEAKER2).get(Key.CID):
-            self.config[Key.SPEAKER2][Key.CID] = self.cids[0]
+        if not self.config.get(ConfigKey.SPEAKER1).get(ConfigKey.CID):
+            self.config[ConfigKey.SPEAKER1][ConfigKey.CID] = self.cids[0]
+        if not self.config.get(ConfigKey.SPEAKER2).get(ConfigKey.CID):
+            self.config[ConfigKey.SPEAKER2][ConfigKey.CID] = self.cids[0]
         
-        if not self.config[Key.SPEAKER1][Key.CID] in self.cids:
-            self.config[Key.SPEAKER1][Key.CID] = self.cids[0]
-        if not self.config[Key.SPEAKER2][Key.CID] in self.cids:
-            self.config[Key.SPEAKER2][Key.CID] = self.cids[0]
-            if self.config[Key.OPPONENT_COMMENTARY_TYPE] == Value.SPEAKER2:
-                self.config[Key.OPPONENT_COMMENTARY_TYPE] = Value.SPEAKER1
+        if not self.config[ConfigKey.SPEAKER1][ConfigKey.CID] in self.cids:
+            self.config[ConfigKey.SPEAKER1][ConfigKey.CID] = self.cids[0]
+        if not self.config[ConfigKey.SPEAKER2][ConfigKey.CID] in self.cids:
+            self.config[ConfigKey.SPEAKER2][ConfigKey.CID] = self.cids[0]
+            if self.config[ConfigKey.OPPONENT_COMMENTARY_TYPE] == ConfigValue.SPEAKER2:
+                self.config[ConfigKey.OPPONENT_COMMENTARY_TYPE] = ConfigValue.SPEAKER1
 
         self.open_config_window()
-        self.logger.info("話者1: {}".format(self.config.get(Key.SPEAKER1).get(Key.NAME)))
-        self.logger.info("話者2: {}".format(self.config.get(Key.SPEAKER2).get(Key.NAME)))
-        self.load_speakers()
-        self.speak_config()
+        self.logger.info("話者1: {}".format(self.config.get(ConfigKey.SPEAKER1).get(ConfigKey.NAME)))
+        self.logger.info("話者2: {}".format(self.config.get(ConfigKey.SPEAKER2).get(ConfigKey.NAME)))
+        self.speaker1_obj = self.load_speaker(self.config.get(ConfigKey.SPEAKER1).get(ConfigKey.CID))
+        self.speaker2_obj = self.load_speaker(self.config.get(ConfigKey.SPEAKER2).get(ConfigKey.CID))
 
         self.start_ws_client()
+        self.speak_config()
 
         self.master.mainloop()
         #try:

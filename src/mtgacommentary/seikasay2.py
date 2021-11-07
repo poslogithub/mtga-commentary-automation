@@ -35,7 +35,7 @@ class SeikaSay2:
                 line = line.strip()
                 print(line)
                 if re.search(r"^[0-9]", line):
-                    cids.append(int(line.split(" ")[0]))
+                    cids.append(line.split(" ")[0])
                     speakers.append(line)
         except subprocess.CalledProcessError:
             return None
