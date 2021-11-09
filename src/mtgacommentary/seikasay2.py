@@ -3,12 +3,12 @@ import subprocess
 
 class SeikaSay2:
 
-    def __init__(self, seikasay2_path=".\\SeikaSay2.exe"):
-        self.seikasay2_path = seikasay2_path
+    def __init__(self, path=".\\SeikaSay2.exe"):
+        self.path = path
 
     def speak(self, cid, text, asynchronize=False, volume=None, speed=None, pitch=None, alpha=None, intonation=None, emotionEP=None, emotionP=None, overBanner=False):
         if cid and text:
-            cmd = "{} -cid {}".format(self.seikasay2_path, cid)
+            cmd = "{} -cid {}".format(self.path, cid)
             cmd += " -async" if asynchronize else ""
             cmd += " -volume {}".format(volume) if volume else ""
             cmd += " -speed {}".format(speed) if speed else ""
@@ -26,7 +26,7 @@ class SeikaSay2:
     def list(self):
         cids = []
         speakers = []
-        cmd = "{} -list".format(self.seikasay2_path)
+        cmd = "{} -list".format(self.path)
         try:
             s = subprocess.check_output(cmd)
             for line in s.splitlines():
