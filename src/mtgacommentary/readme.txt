@@ -33,7 +33,7 @@ Windows 10 の Xbox Game Barで実況付きで録画する場合、設定/キャ
 
 ## より詳しい使い方
 
-https://github.com/poslogithub/binary-dist/blob/main/commentary_backend_MANUAL.md を参照してください。
+https://github.com/poslogithub/binary-dist/blob/main/mtga-commentary-automation/README.md を参照してください。
 
 ## 配布場所
 
