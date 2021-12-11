@@ -3,6 +3,7 @@
 ## これは何？
 
 mtgatracker_backend、AssistantSeikaと組み合わせてMTG ArenaをVOICEROID等に実況させるためのツールです。
+紹介動画（ https://www.nicovideo.jp/watch/sm39704958 ）を見ればおおよそ分かると思います。
 
 ## 導入方法
 

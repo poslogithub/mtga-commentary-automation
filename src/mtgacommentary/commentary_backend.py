@@ -1,4 +1,5 @@
 import _thread
+from datetime import datetime
 from enum import Enum
 import json
 import logging
@@ -239,10 +240,12 @@ class CommentaryBackend(tkinter.Frame):
         self.master.geometry("600x360")
         self.master_frame = tkinter.Frame(self.master)
         self.master_frame.pack()
-        self.master_text = ScrolledText(self.master_frame)
+        self.master_text = ScrolledText(self.master_frame, state='disabled')
         self.master_text.pack()
-        self.master_quit = tkinter.Button(self.master_frame, text="終了", command=self.master_frame_quit)
-        self.master_quit.pack()
+        self.master_quit = tkinter.Button(self.master_frame, text="　終了　", command=self.master_frame_quit)
+        self.master_quit.pack(fill='x', padx=10, pady=5, side = 'right')
+        self.master_save = tkinter.Button(self.master_frame, text="　保存　", command=self.master_frame_save)
+        self.master_save.pack(fill='x', padx=10, pady=5, side = 'right')
 
         # logger
         self.logger = logging.getLogger(__name__)
@@ -268,10 +271,17 @@ class CommentaryBackend(tkinter.Frame):
             self.logger.info("Loading {}: OK".format(self.CONFIG_FILE))
         else:
             self.logger.info("Loading {}: NG".format(self.CONFIG_FILE))
-        self.seikasay2 = SeikaSay2(self.config.get(ConfigKey.SEIKA_SAY2_PATH))
+
+    def master_frame_save(self):
+        filename = "MTGA自動実況_{}.txt".format(datetime.now().strftime('%Y%m%d_%H%M%S'))
+        path = filedialog.asksaveasfilename(filetype=[("テキストファイル","*.txt")], initialdir=os.getcwd(), initialfile=filename)
+        if path:
+            with open(path, 'a', encoding="utf_8_sig") as af:
+                af.write(self.master_text.get("1.0","end"))
 
     def master_frame_quit(self):
-        self.master.destroy()
+        if messagebox.askyesno("終了確認", "終了してよろしいですか？"):
+            self.master.destroy()
 
     def start_ws_client(self):
         import threading
@@ -305,7 +315,7 @@ class CommentaryBackend(tkinter.Frame):
         speaker2_index = self.cids.index(self.config.get(ConfigKey.SPEAKER2).get(ConfigKey.CID))
         self.config_window = tkinter.Toplevel(self)
         self.config_window.title("MTGA自動実況ツール - 設定ウィンドウ")
-        self.config_window.geometry("520x190")
+        self.config_window.geometry("480x190")
         self.config_window.grab_set()   # モーダルにする
         self.config_window.focus_set()  # フォーカスを新しいウィンドウをへ移す
         self.config_window.transient(self.master)   # タスクバーに表示しない
@@ -321,21 +331,21 @@ class CommentaryBackend(tkinter.Frame):
         #label_seikasay2.grid(row=0, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
         #entry_seikasay2 = ttk.Entry(self.config_frame, width=40, textvariable=self.sv_seikasay2_path)
         #entry_seikasay2.grid(row=0, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
-        button_seikasay2 = tkinter.Button(self.config_frame, text="参照", command=self.config_window_seikasay2)
+        button_seikasay2 = tkinter.Button(self.config_frame, text="　参照　", command=self.config_window_seikasay2)
         button_seikasay2.grid(row=0, column=2, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
         label_speaker1 = ttk.Label(self.config_frame, text="話者1: ", anchor="w")
         label_speaker1.grid(row=0, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
         combobox_speaker1 = ttk.Combobox(self.config_frame, width=40, values=self.speakers, textvariable=self.sv_speaker1, state="readonly")
         combobox_speaker1.current(speaker1_index)
         combobox_speaker1.grid(row=0, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
-        button_speaker1 = tkinter.Button(self.config_frame, text="編集", command=lambda: self.open_speaker_window(self.sv_speaker1.get().split(" ")[0]))
+        button_speaker1 = tkinter.Button(self.config_frame, text="　編集　", command=lambda: self.open_speaker_window(self.sv_speaker1.get().split(" ")[0]))
         button_speaker1.grid(row=0, column=2, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
         label_speaker2 = ttk.Label(self.config_frame, text="話者2: ", anchor="w")
         label_speaker2.grid(row=1, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
         combobox_speaker2 = ttk.Combobox(self.config_frame, width=40, values=self.speakers, textvariable=self.sv_speaker2, state="readonly")
         combobox_speaker2.current(speaker2_index)
         combobox_speaker2.grid(row=1, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
-        button_speaker2 = tkinter.Button(self.config_frame, text="編集", command=lambda: self.open_speaker_window(self.sv_speaker2.get().split(" ")[0]))
+        button_speaker2 = tkinter.Button(self.config_frame, text="　編集　", command=lambda: self.open_speaker_window(self.sv_speaker2.get().split(" ")[0]))
         button_speaker2.grid(row=1, column=2, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
         label_hero_commentary_type = ttk.Label(self.config_frame, text="自分のアクション: ", anchor="w")
         label_hero_commentary_type.grid(row=2, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
@@ -347,10 +357,10 @@ class CommentaryBackend(tkinter.Frame):
         combobox_opponent_commentary_type = ttk.Combobox(self.config_frame, width=40, values=self.OPPONENT_COMMENTARY_TYPES, textvariable=self.sv_opponent_commentary_type, state="readonly")
         combobox_opponent_commentary_type.current(0 if self.config.get(ConfigKey.OPPONENT_COMMENTARY_TYPE) == ConfigValue.SPEAKER1 else 1 if self.config.get(ConfigKey.OPPONENT_COMMENTARY_TYPE) == ConfigValue.SPEAKER2 else 2)
         combobox_opponent_commentary_type.grid(row=3, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
-        button_ok = tkinter.Button(self.config_frame, text="保存して開始", command=self.config_window_ok)
-        button_ok.grid(row=4, column=1, sticky=tkinter.E, padx=5, pady=10)
-        button_cancel = tkinter.Button(self.config_frame, text="保存しないで開始", command=self.config_window_cancel)
-        button_cancel.grid(row=4, column=2, sticky=tkinter.W + tkinter.E, padx=5, pady=10)
+        button_ok = tkinter.Button(self.config_frame, text="　開始　", command=self.config_window_ok)
+        button_ok.grid(row=4, column=2, sticky=tkinter.E, padx=5, pady=10)
+        #button_cancel = tkinter.Button(self.config_frame, text="保存しないで開始", command=self.config_window_cancel)
+        #button_cancel.grid(row=4, column=2, sticky=tkinter.W + tkinter.E, padx=5, pady=10)
         self.wait_window(self.config_window)
     
     def config_window_seikasay2(self):
@@ -420,6 +430,8 @@ class CommentaryBackend(tkinter.Frame):
                 svs[key.name][j].set(self.get_speak_obj(speakers, key.value[0])[j].get(SpeakerKey.TEXT))
                 entrys[key.name].append(ttk.Entry(self.speaker_frame, width=40, textvariable=svs[key.name][j]))
                 entrys[key.name][j].grid(row=i, column=j+1, sticky=tkinter.W + tkinter.E, padx=4, pady=2)
+                if j > 0 and key.value[0] in [Event.GAME_START, Event.GAME_WIN, Event.GAME_LOSE, Event.MULLIGAN_CHECK]:
+                    entrys[key.name][j].config(state='disabled')
             i += 1
         
         button_ok = tkinter.Button(self.speaker_frame, text="保存して閉じる", command=lambda: self.speaker_window_ok(cid, speakers, svs))
@@ -451,7 +463,7 @@ class CommentaryBackend(tkinter.Frame):
             json.dump(speaker, wf, ensure_ascii=False)
     
     def del_ruby(self, s):
-        return re.sub("（.+?）", "", s)
+        return re.sub("（.+?）", "", re.sub("<.+?>", "", s))
 
     def parse(self, blob):
         self.logger.debug(blob)
@@ -466,11 +478,10 @@ class CommentaryBackend(tkinter.Frame):
             elif len(text_array) == 1:
                 if text_array[0].get(MessageKey.TYPE) == MessageValue.GAME: # ゲーム終了  {"text": "screenName won!", "type": "game"}
                     parsed[ParseKey.MESSAGE_TYPE] = text_array[0].get(MessageKey.TYPE)
-                    if text_array[0].get(MessageKey.TEXT).startswith(self.opponent_screen_name):
-                        parsed[ParseKey.IS_OPPONENT] = True
-                        parsed[ParseKey.EVENT] = Event.GAME_LOSE
-                    else:
+                    if text_array[0].get(MessageKey.TEXT).startswith(self.hero_screen_name):
                         parsed[ParseKey.EVENT] = Event.GAME_WIN
+                    else:
+                        parsed[ParseKey.EVENT] = Event.GAME_LOSE
                 elif text_array[0].get(MessageKey.TYPE) == MessageValue.TURN:   # ターン開始  { "text": "N / screenName Turn M", "type": "turn" }
                     if text_array[0].get(MessageKey.TEXT).find(self.opponent_screen_name) >= 0:
                         parsed[ParseKey.IS_OPPONENT] = True
@@ -692,8 +703,10 @@ class CommentaryBackend(tkinter.Frame):
                 if not speaker:
                     speaker = ""
                 self.logger.info(speaker+"「"+text+"」")
+                self.master_text.config(state="normal")
                 self.master_text.insert("end", speaker+"「"+text+"」\n")
                 self.master_text.yview_moveto(1)
+                self.master_text.config(state="disabled")
                 self.speak(cid, text, speak_param_obj)
 
     def on_error(self, ws, error):
@@ -723,10 +736,10 @@ class CommentaryBackend(tkinter.Frame):
         for proc in psutil.process_iter():
             try:
                 if proc.exe().endswith(process_postfix):
-                    return True
+                    return proc
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                 pass
-        return False
+        return None
 
     def speak_config(self):
         if self.config[ConfigKey.HERO_COMMENTARY_TYPE] == ConfigValue.SPEAKER1 and self.config[ConfigKey.OPPONENT_COMMENTARY_TYPE] == ConfigValue.SPEAKER1:
@@ -745,9 +758,10 @@ class CommentaryBackend(tkinter.Frame):
         self.logger.info("mtgatracker_backend.exe running check")
         running = False
         while not running:
-            running = self.process_running_check(ProcessName.MTGATRACKER_BACKEND)
+            mtgatracker_backend = self.process_running_check(ProcessName.MTGATRACKER_BACKEND)
+            running = True if mtgatracker_backend else False
             if not running:
-                ans = messagebox.askyesno(__file__, "{} プロセスが見つかりませんでした。\nmtgatracker_backendが起動していない可能性があります。\nはい: 再試行\nいいえ: 無視して続行".format(ProcessName.MTGATRACKER_BACKEND))
+                ans = messagebox.askyesno("mtgatracker_backend 起動確認", "{} プロセスが見つかりませんでした。\r\nmtgatracker_backendが起動していない可能性があります。\r\nはい: 再試行\r\nいいえ: 無視して続行".format(ProcessName.MTGATRACKER_BACKEND))
                 if ans == True:
                     pass
                 elif ans == False:
@@ -761,7 +775,7 @@ class CommentaryBackend(tkinter.Frame):
         while not running:
             running = self.process_running_check(ProcessName.ASSISTANT_SEIKA)
             if not running:
-                ans = messagebox.askyesno(__file__, "{} プロセスが見つかりませんでした。\nAssistantSeikaが起動していない可能性があります。\nはい: 再試行\nいいえ: 無視して続行".format(ProcessName.ASSISTANT_SEIKA))
+                ans = messagebox.askyesno("AssistantSeika 起動確認", "{} プロセスが見つかりませんでした。\r\nAssistantSeikaが起動していない可能性があります。\r\nはい: 再試行\r\nいいえ: 無視して続行".format(ProcessName.ASSISTANT_SEIKA))
                 if ans == True:
                     pass
                 elif ans == False:
@@ -769,6 +783,16 @@ class CommentaryBackend(tkinter.Frame):
                     running = True
             else:
                 self.logger.info("AssistantSeika running check: OK")
+
+        self.logger.info(ProcessName.SEIKA_SAY2+" existence check")
+        running = False
+        while not running:
+            if os.path.exists(self.config.get(ConfigKey.SEIKA_SAY2_PATH)):
+                running = True
+            else:
+                messagebox.showinfo(ProcessName.SEIKA_SAY2+" 存在確認", "{} が見つかりませんでした。\r\nこの後に表示されるファイルダイアログで {} を選択してください。".format(ProcessName.SEIKA_SAY2, ProcessName.SEIKA_SAY2))
+                self.config[ConfigKey.SEIKA_SAY2_PATH] = filedialog.askopenfilename(filetype=[(ProcessName.SEIKA_SAY2,"*.exe")], initialdir=os.getcwd())
+        self.seikasay2 = SeikaSay2(self.config.get(ConfigKey.SEIKA_SAY2_PATH))
 
         self.logger.info("Get speakers from AssistantSeika")
         running = False
@@ -779,7 +803,7 @@ class CommentaryBackend(tkinter.Frame):
                 self.logger.info("Get cids from AssistantSeika: OK")
                 break
             else:
-                ans = messagebox.askyesno(__file__, "AssistantSeikaの話者一覧が空です。\n製品スキャンが未実行か、AssistantSeikaに対応している音声合成製品が未起動である可能性があります。\nはい: 再試行\nいいえ: 無視して続行")
+                ans = messagebox.askyesno("AssistantSeika 話者一覧取得", "AssistantSeikaの話者一覧が空です。\r\n製品スキャンが未実行か、AssistantSeikaに対応している音声合成製品が未起動である可能性があります。\r\nはい: 再試行\r\nいいえ: 無視して続行")
                 if ans == True:
                     pass
                 elif ans == False:
@@ -816,6 +840,14 @@ class CommentaryBackend(tkinter.Frame):
         #    self.ws.close()
 
         self.ws.close()
+
+        #mtgatracker_backendを停止
+        pid_list=[pc.pid for pc in mtgatracker_backend.children(recursive=True)] 
+        for pid in pid_list:
+            psutil.Process(pid).terminate()
+            self.logger.debug("terminate 子プロセス　{}" .format(pid))
+        mtgatracker_backend.terminate()
+        self.logger.debug("terminate  親プロセス　{}" .format(mtgatracker_backend.pid))
 
 if __name__ == "__main__":
     #param = sys.argv
