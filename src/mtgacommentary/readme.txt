@@ -37,7 +37,11 @@ https://github.com/poslogithub/binary-dist/blob/main/commentary_backend_MANUAL.m
 
 ## 配布場所
 
-https://github.com/poslogithub/binary-dist
+https://github.com/poslogithub/binary-dist/tree/main/mtga-commentary-automation
+
+## 連絡先
+
+https://twitter.com/poslog
 
 ## ライセンス
 
@@ -64,4 +68,3 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 外部ライブラリのライセンスはLICENSEフォルダを参照してください。
-
