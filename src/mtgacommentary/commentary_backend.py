@@ -463,7 +463,7 @@ class CommentaryBackend(tkinter.Frame):
             json.dump(speaker, wf, ensure_ascii=False)
     
     def del_ruby(self, s):
-        return re.sub("（.+?）", "", s)
+        return re.sub("（.+?）", "", re.sub("<.+?>", "", s))
 
     def parse(self, blob):
         self.logger.debug(blob)
