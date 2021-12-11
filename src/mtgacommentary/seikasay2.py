@@ -6,10 +6,11 @@ class SeikaSay2:
     def __init__(self, path=".\\SeikaSay2.exe"):
         self.path = path
 
-    def speak(self, cid, text, asynchronize=False, volume=None, speed=None, pitch=None, alpha=None, intonation=None, emotionEP=None, emotionP=None, overBanner=False):
+    def speak(self, cid, text, asynchronize=False, save=None, volume=None, speed=None, pitch=None, alpha=None, intonation=None, emotionEP=None, emotionP=None, overBanner=False):
         if cid and text:
             cmd = "{} -cid {}".format(self.path, cid)
             cmd += " -async" if asynchronize else ""
+            cmd += ' -save "{}"'.format(save) if save else ""
             cmd += " -volume {}".format(volume) if volume else ""
             cmd += " -speed {}".format(speed) if speed else ""
             cmd += " -pitch {}".format(pitch) if pitch else ""
