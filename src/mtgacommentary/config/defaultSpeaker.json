@@ -214,7 +214,7 @@
                 "text": "{life_diff}点回復して、ライフは{life_to}"
             },
             {
-                "text": "{life_diff}点回復されて、お相手はライフは{life_to}"
+                "text": "{life_diff}点回復されて、お相手のライフは{life_to}"
             },
             {
                 "text": "{life_diff}点回復して、ライフは{life_to}"

@@ -92,6 +92,7 @@ class ConfigKey:
     HERO_COMMENTARY_TYPE = "heroCommentaryType"
     OPPONENT_COMMENTARY_TYPE = "opponentCommentaryType"
     MTGATRACKER_BACKEND_URL = "mtgatrackerBackendUrl"
+    WAV_OUTPUT = "wavOutput"
 
 class ConfigValue:
     SPEAKER1 = "speaker1"
@@ -120,7 +121,6 @@ class SpeakerParamKey:
     EMOTION_EP = "emotionEP"
     EMOTION_P = "emotionP"
     OVER_BANNER = "overBanner"
-
 
 class SpeakerLabel:
     GAME_START = "ゲーム開始時"
@@ -210,6 +210,8 @@ class CommentaryBackend(tkinter.Frame):
         self.CONFIG_FILE = "config\\config.json"
         self.DEFAULT_SPEAKER_FILE = "config\\defaultSpeaker.json"
         self.LOG_FILE = os.path.basename(__file__).split(".")[0]+".log"
+        self.BAT_FOR_WAV_FILE = "WAVファイル出力_{}.bat".format(datetime.now().strftime('%Y%m%d_%H%M%S'))
+        self.WAV_OUTPUT_DIR = os.getcwd()+"\\wav"
 
         # 変数
         self.config = {
@@ -224,7 +226,8 @@ class CommentaryBackend(tkinter.Frame):
             },
             ConfigKey.HERO_COMMENTARY_TYPE : ConfigValue.SPEAKER1,
             ConfigKey.OPPONENT_COMMENTARY_TYPE : ConfigValue.SPEAKER1,
-            ConfigKey.MTGATRACKER_BACKEND_URL : "ws://localhost:8089"
+            ConfigKey.MTGATRACKER_BACKEND_URL : "ws://localhost:8089",
+            ConfigKey.WAV_OUTPUT : False,
         }
         self.cids = []
         self.speakers = []
@@ -234,6 +237,7 @@ class CommentaryBackend(tkinter.Frame):
         self.opponent_screen_name = ""
         self.HERO_COMMENTARY_TYPES = ["話者1が一人称で実況する", "実況しない"]
         self.OPPONENT_COMMENTARY_TYPES = ["話者1が三人称で実況する", "話者2が一人称で実況する", "実況しない"]
+        self.WAV_OUTPUT = ["WAVファイルを出力しない", "WAVファイル出力用batファイルを作成する"]
 
         # GUI
         self.master.title("MTGA自動実況ツール")
@@ -304,6 +308,8 @@ class CommentaryBackend(tkinter.Frame):
             self.save_config(config_file, self.config)
         with open(config_file if config_file else self.CONFIG_FILE, 'r', encoding="utf_8_sig") as rf:
             self.config = json.load(rf)
+            if self.config.get(ConfigKey.WAV_OUTPUT) is None:
+                self.config[ConfigKey.WAV_OUTPUT] = False
         return self.config
     
     def save_config(self, config_file=None, config=None):
@@ -315,7 +321,7 @@ class CommentaryBackend(tkinter.Frame):
         speaker2_index = self.cids.index(self.config.get(ConfigKey.SPEAKER2).get(ConfigKey.CID))
         self.config_window = tkinter.Toplevel(self)
         self.config_window.title("MTGA自動実況ツール - 設定ウィンドウ")
-        self.config_window.geometry("480x190")
+        self.config_window.geometry("480x220")
         self.config_window.grab_set()   # モーダルにする
         self.config_window.focus_set()  # フォーカスを新しいウィンドウをへ移す
         self.config_window.transient(self.master)   # タスクバーに表示しない
@@ -327,10 +333,7 @@ class CommentaryBackend(tkinter.Frame):
         self.sv_speaker2 = tkinter.StringVar()
         self.sv_hero_commentary_type = tkinter.StringVar()
         self.sv_opponent_commentary_type = tkinter.StringVar()
-        #label_seikasay2 = ttk.Label(self.config_frame, text="SeikaSay2のパス: ", anchor="w")
-        #label_seikasay2.grid(row=0, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
-        #entry_seikasay2 = ttk.Entry(self.config_frame, width=40, textvariable=self.sv_seikasay2_path)
-        #entry_seikasay2.grid(row=0, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
+        self.sv_wav_output = tkinter.StringVar()
         button_seikasay2 = tkinter.Button(self.config_frame, text="　参照　", command=self.config_window_seikasay2)
         button_seikasay2.grid(row=0, column=2, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
         label_speaker1 = ttk.Label(self.config_frame, text="話者1: ", anchor="w")
@@ -357,16 +360,22 @@ class CommentaryBackend(tkinter.Frame):
         combobox_opponent_commentary_type = ttk.Combobox(self.config_frame, width=40, values=self.OPPONENT_COMMENTARY_TYPES, textvariable=self.sv_opponent_commentary_type, state="readonly")
         combobox_opponent_commentary_type.current(0 if self.config.get(ConfigKey.OPPONENT_COMMENTARY_TYPE) == ConfigValue.SPEAKER1 else 1 if self.config.get(ConfigKey.OPPONENT_COMMENTARY_TYPE) == ConfigValue.SPEAKER2 else 2)
         combobox_opponent_commentary_type.grid(row=3, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
+        label_wav_output = ttk.Label(self.config_frame, text="WAVファイル出力: ", anchor="w")
+        label_wav_output.grid(row=4, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
+        combobox_wav_output = ttk.Combobox(self.config_frame, width=40, values=self.WAV_OUTPUT, textvariable=self.sv_wav_output, state="readonly")
+        combobox_wav_output.current(0 if not self.config.get(ConfigKey.WAV_OUTPUT) else 1)
+        combobox_wav_output.grid(row=4, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
         button_ok = tkinter.Button(self.config_frame, text="　開始　", command=self.config_window_ok)
-        button_ok.grid(row=4, column=2, sticky=tkinter.E, padx=5, pady=10)
+        button_ok.grid(row=5, column=2, sticky=tkinter.E, padx=5, pady=10)
         #button_cancel = tkinter.Button(self.config_frame, text="保存しないで開始", command=self.config_window_cancel)
         #button_cancel.grid(row=4, column=2, sticky=tkinter.W + tkinter.E, padx=5, pady=10)
         self.wait_window(self.config_window)
     
     def config_window_seikasay2(self):
         path = filedialog.askopenfilename(filetype=[("実行ファイル","*.exe")], initialdir=os.getcwd())
-        self.sv_seikasay2_path.set(path)
-
+        if path:
+            self.sv_seikasay2_path.set(path)
+    
     def config_window_ok(self):
         self.config[ConfigKey.SEIKA_SAY2_PATH] = self.sv_seikasay2_path.get()
         self.config[ConfigKey.SPEAKER1][ConfigKey.CID] = self.sv_speaker1.get().split(" ")[0]
@@ -380,6 +389,7 @@ class CommentaryBackend(tkinter.Frame):
             ConfigValue.SPEAKER1 if self.sv_opponent_commentary_type.get() == self.OPPONENT_COMMENTARY_TYPES[0] \
             else ConfigValue.SPEAKER2 if self.sv_opponent_commentary_type.get() == self.OPPONENT_COMMENTARY_TYPES[1] \
             else ConfigValue.NEVER
+        self.config[ConfigKey.WAV_OUTPUT] = False if self.sv_wav_output.get() == self.WAV_OUTPUT[0] else True
         self.save_config()
         self.config_window.destroy()
 
@@ -671,7 +681,7 @@ class CommentaryBackend(tkinter.Frame):
                     return None
         return None
 
-    def speak(self, cid, text, speak_param_obj={}):
+    def speak(self, cid, text, speak_param_obj={}, save=True):
         if cid and text:
             speaked_text = self.seikasay2.speak( \
                 cid=cid, \
@@ -686,6 +696,24 @@ class CommentaryBackend(tkinter.Frame):
                 emotionP=speak_param_obj.get(SpeakerParamKey.EMOTION_P), \
                 overBanner=speak_param_obj.get(SpeakerParamKey.OVER_BANNER) \
             )
+            if self.config.get(ConfigKey.WAV_OUTPUT) and save:
+                cmd = self.seikasay2.get_speak_command( \
+                    cid=cid, \
+                    text=text, \
+                    asynchronize=speak_param_obj.get(SpeakerParamKey.ASYNC), \
+                    save=self.WAV_OUTPUT_DIR+"\\"+datetime.now().strftime('%Y%m%d_%H%M%S_%f')+"_"+self.get_speaker_name(cid)+"「"+text+"」.wav", \
+                    volume=speak_param_obj.get(SpeakerParamKey.VOLUME), \
+                    speed=speak_param_obj.get(SpeakerParamKey.SPEED), \
+                    pitch=speak_param_obj.get(SpeakerParamKey.PITCH), \
+                    alpha=speak_param_obj.get(SpeakerParamKey.ALPHA), \
+                    intonation=speak_param_obj.get(SpeakerParamKey.INTONATION), \
+                    emotionEP=speak_param_obj.get(SpeakerParamKey.EMOTION_EP), \
+                    emotionP=speak_param_obj.get(SpeakerParamKey.EMOTION_P), \
+                    overBanner=speak_param_obj.get(SpeakerParamKey.OVER_BANNER) \
+                )
+                with open(self.BAT_FOR_WAV_FILE, 'a') as af:
+                    af.write(cmd+"\n")
+
             return speaked_text
         else:
             return None
@@ -743,16 +771,16 @@ class CommentaryBackend(tkinter.Frame):
 
     def speak_config(self):
         if self.config[ConfigKey.HERO_COMMENTARY_TYPE] == ConfigValue.SPEAKER1 and self.config[ConfigKey.OPPONENT_COMMENTARY_TYPE] == ConfigValue.SPEAKER1:
-            self.speak(self.config[ConfigKey.SPEAKER1][ConfigKey.CID], "自分と対戦相手のアクションを実況します。")
+            self.speak(self.config[ConfigKey.SPEAKER1][ConfigKey.CID], "自分と対戦相手のアクションを実況します。", save=False)
         elif self.config[ConfigKey.HERO_COMMENTARY_TYPE] == ConfigValue.SPEAKER1 and self.config[ConfigKey.OPPONENT_COMMENTARY_TYPE] == ConfigValue.SPEAKER2:
-            self.speak(self.config[ConfigKey.SPEAKER1][ConfigKey.CID], "自分のアクションを実況します。")
-            self.speak(self.config[ConfigKey.SPEAKER2][ConfigKey.CID], "対戦相手のアクションを実況します。")
+            self.speak(self.config[ConfigKey.SPEAKER1][ConfigKey.CID], "自分のアクションを実況します。", save=False)
+            self.speak(self.config[ConfigKey.SPEAKER2][ConfigKey.CID], "対戦相手のアクションを実況します。", save=False)
         elif self.config[ConfigKey.HERO_COMMENTARY_TYPE] == ConfigValue.SPEAKER1:
-            self.speak(self.config[ConfigKey.SPEAKER1][ConfigKey.CID], "自分のアクションだけを実況します。")
+            self.speak(self.config[ConfigKey.SPEAKER1][ConfigKey.CID], "自分のアクションだけを実況します。", save=False)
         elif self.config[ConfigKey.OPPONENT_COMMENTARY_TYPE] == ConfigValue.SPEAKER1:
-            self.speak(self.config[ConfigKey.SPEAKER1][ConfigKey.CID], "対戦相手のアクションだけを実況します。")
+            self.speak(self.config[ConfigKey.SPEAKER1][ConfigKey.CID], "対戦相手のアクションだけを実況します。", save=False)
         elif self.config[ConfigKey.OPPONENT_COMMENTARY_TYPE] == ConfigValue.SPEAKER2:
-            self.speak(self.config[ConfigKey.SPEAKER2][ConfigKey.CID], "対戦相手のアクションを実況します。")
+            self.speak(self.config[ConfigKey.SPEAKER2][ConfigKey.CID], "対戦相手のアクションを実況します。", save=False)
 
     def run(self):
         self.logger.info("mtgatracker_backend.exe running check")

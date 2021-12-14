@@ -29,7 +29,7 @@ MANIFEST
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
-*.spec
+#*.spec
 
 # Installer logs
 pip-log.txt
@@ -112,10 +112,13 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
 src/mtgacommentary/commentary_backend_log.json
 src/mtgacommentary/commentary_backend.log*
 src/mtgacommentary/SeikaSay2.exe
 src/mtgacommentary/tkinter_test.py
 src/mtgacommentary/config/_config.json
-*.txt
 src/mtgacommentary/enum_test.py
+*.wav
+*.bat
+

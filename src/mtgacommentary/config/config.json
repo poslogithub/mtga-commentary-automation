@@ -10,5 +10,6 @@
     },
     "heroCommentaryType": "speaker1",
     "opponentCommentaryType": "speaker2",
-    "mtgatrackerBackendUrl": "ws://localhost:8089"
+    "mtgatrackerBackendUrl": "ws://localhost:8089",
+    "wavOutput": true
 }
