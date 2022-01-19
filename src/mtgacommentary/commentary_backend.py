@@ -10,6 +10,8 @@ import sys
 import tkinter
 from tkinter import StringVar, filedialog, messagebox, ttk
 from tkinter.scrolledtext import ScrolledText
+import urllib.parse
+import urllib.request
 import psutil
 import websocket
 
@@ -93,6 +95,8 @@ class ConfigKey:
     OPPONENT_COMMENTARY_TYPE = "opponentCommentaryType"
     MTGATRACKER_BACKEND_URL = "mtgatrackerBackendUrl"
     WAV_OUTPUT = "wavOutput"
+    YUKARINETTE_CONNECTOR_NEO = "yukarinetteConnectorNeo"
+    YUKARINETTE_CONNECTOR_NEO_URL = "yukarinetteConnectorNeoUrl"
 
 class ConfigValue:
     SPEAKER1 = "speaker1"
@@ -228,6 +232,8 @@ class CommentaryBackend(tkinter.Frame):
             ConfigKey.OPPONENT_COMMENTARY_TYPE : ConfigValue.SPEAKER1,
             ConfigKey.MTGATRACKER_BACKEND_URL : "ws://localhost:8089",
             ConfigKey.WAV_OUTPUT : False,
+            ConfigKey.YUKARINETTE_CONNECTOR_NEO : False,
+            ConfigKey.YUKARINETTE_CONNECTOR_NEO_URL : "http://localhost:15520/api/input?text="
         }
         self.cids = []
         self.speakers = []
@@ -238,6 +244,7 @@ class CommentaryBackend(tkinter.Frame):
         self.HERO_COMMENTARY_TYPES = ["話者1が一人称で実況する", "実況しない"]
         self.OPPONENT_COMMENTARY_TYPES = ["話者1が三人称で実況する", "話者2が一人称で実況する", "実況しない"]
         self.WAV_OUTPUT = ["WAVファイルを出力しない", "WAVファイル出力用batファイルを作成する"]
+        self.YUKARINETTE_CONNECTOR_NEO = ["連携しない", "ゆかりねっとコネクター Neoに実況内容を連携する"]
 
         # GUI
         self.master.title("MTGA自動実況ツール")
@@ -290,7 +297,7 @@ class CommentaryBackend(tkinter.Frame):
     def start_ws_client(self):
         import threading
         t = threading.Thread(target=self.connect_to_socket)
-        t.start()        
+        t.start()
 
     def connect_to_socket(self):
         websocket.enableTrace(False)
@@ -300,6 +307,14 @@ class CommentaryBackend(tkinter.Frame):
             on_error = self.on_error,
             on_close = self.on_close)
         self.ws.run_forever()
+    
+    def start_http_client(self, url):
+        import threading
+        t = threading.Thread(target=self.connect_to_yukarinette_conecctor_neo, args=(url,))
+        t.start()
+
+    def connect_to_yukarinette_conecctor_neo(self, url):
+        urllib.request.urlopen(url=url)
 
     def load_config(self, config_file=None):
         if not config_file:
@@ -310,6 +325,10 @@ class CommentaryBackend(tkinter.Frame):
             self.config = json.load(rf)
             if self.config.get(ConfigKey.WAV_OUTPUT) is None:
                 self.config[ConfigKey.WAV_OUTPUT] = False
+            if self.config.get(ConfigKey.YUKARINETTE_CONNECTOR_NEO) is None:
+                self.config[ConfigKey.YUKARINETTE_CONNECTOR_NEO] = False
+            if self.config.get(ConfigKey.YUKARINETTE_CONNECTOR_NEO_URL) is None:
+                self.config[ConfigKey.YUKARINETTE_CONNECTOR_NEO_URL] = "http://localhost:15520/api/input?text="
         return self.config
     
     def save_config(self, config_file=None, config=None):
@@ -321,7 +340,7 @@ class CommentaryBackend(tkinter.Frame):
         speaker2_index = self.cids.index(self.config.get(ConfigKey.SPEAKER2).get(ConfigKey.CID))
         self.config_window = tkinter.Toplevel(self)
         self.config_window.title("MTGA自動実況ツール - 設定ウィンドウ")
-        self.config_window.geometry("480x220")
+        self.config_window.geometry("500x250")
         self.config_window.grab_set()   # モーダルにする
         self.config_window.focus_set()  # フォーカスを新しいウィンドウをへ移す
         self.config_window.transient(self.master)   # タスクバーに表示しない
@@ -334,6 +353,7 @@ class CommentaryBackend(tkinter.Frame):
         self.sv_hero_commentary_type = tkinter.StringVar()
         self.sv_opponent_commentary_type = tkinter.StringVar()
         self.sv_wav_output = tkinter.StringVar()
+        self.sv_yukarinette_connector_neo = tkinter.StringVar()
         button_seikasay2 = tkinter.Button(self.config_frame, text="　参照　", command=self.config_window_seikasay2)
         button_seikasay2.grid(row=0, column=2, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
         label_speaker1 = ttk.Label(self.config_frame, text="話者1: ", anchor="w")
@@ -365,10 +385,13 @@ class CommentaryBackend(tkinter.Frame):
         combobox_wav_output = ttk.Combobox(self.config_frame, width=40, values=self.WAV_OUTPUT, textvariable=self.sv_wav_output, state="readonly")
         combobox_wav_output.current(0 if not self.config.get(ConfigKey.WAV_OUTPUT) else 1)
         combobox_wav_output.grid(row=4, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
+        label_yukarinette_connector_neo = ttk.Label(self.config_frame, text="ゆかりねっとコネクター Neo: ", anchor="w")
+        label_yukarinette_connector_neo.grid(row=5, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
+        combobox_yukarinette_connector_neo = ttk.Combobox(self.config_frame, width=40, values=self.YUKARINETTE_CONNECTOR_NEO, textvariable=self.sv_yukarinette_connector_neo, state="readonly")
+        combobox_yukarinette_connector_neo.current(0 if not self.config.get(ConfigKey.YUKARINETTE_CONNECTOR_NEO) else 1)
+        combobox_yukarinette_connector_neo.grid(row=5, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
         button_ok = tkinter.Button(self.config_frame, text="　開始　", command=self.config_window_ok)
-        button_ok.grid(row=5, column=2, sticky=tkinter.E, padx=5, pady=10)
-        #button_cancel = tkinter.Button(self.config_frame, text="保存しないで開始", command=self.config_window_cancel)
-        #button_cancel.grid(row=4, column=2, sticky=tkinter.W + tkinter.E, padx=5, pady=10)
+        button_ok.grid(row=6, column=2, sticky=tkinter.E, padx=5, pady=10)
         self.wait_window(self.config_window)
     
     def config_window_seikasay2(self):
@@ -390,6 +413,7 @@ class CommentaryBackend(tkinter.Frame):
             else ConfigValue.SPEAKER2 if self.sv_opponent_commentary_type.get() == self.OPPONENT_COMMENTARY_TYPES[1] \
             else ConfigValue.NEVER
         self.config[ConfigKey.WAV_OUTPUT] = False if self.sv_wav_output.get() == self.WAV_OUTPUT[0] else True
+        self.config[ConfigKey.YUKARINETTE_CONNECTOR_NEO] = False if self.sv_yukarinette_connector_neo.get() == self.YUKARINETTE_CONNECTOR_NEO[0] else True
         self.save_config()
         self.config_window.destroy()
 
@@ -683,6 +707,10 @@ class CommentaryBackend(tkinter.Frame):
 
     def speak(self, cid, text, speak_param_obj={}, save=True):
         if cid and text:
+            if self.config.get(ConfigKey.YUKARINETTE_CONNECTOR_NEO) and save:
+                # ゆかりねっとコネクター Neoに発話内容を連携
+                self.start_http_client(self.config.get(ConfigKey.YUKARINETTE_CONNECTOR_NEO_URL) + urllib.parse.quote(text))
+
             speaked_text = self.seikasay2.speak( \
                 cid=cid, \
                 text=text, \
