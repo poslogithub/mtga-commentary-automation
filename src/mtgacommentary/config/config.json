@@ -11,5 +11,7 @@
     "heroCommentaryType": "speaker1",
     "opponentCommentaryType": "speaker2",
     "mtgatrackerBackendUrl": "ws://localhost:8089",
-    "wavOutput": true
+    "wavOutput": false,
+    "yukarinetteConnectorNeo": true,
+    "yukarinetteConnectorNeoUrl": "http://localhost:15520/api/input?text="
 }

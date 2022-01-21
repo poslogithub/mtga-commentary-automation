@@ -117,8 +117,9 @@ src/mtgacommentary/commentary_backend_log.json
 src/mtgacommentary/commentary_backend.log*
 src/mtgacommentary/SeikaSay2.exe
 src/mtgacommentary/tkinter_test.py
-src/mtgacommentary/config/_config.json
 src/mtgacommentary/enum_test.py
+src/mtgacommentary/sample.json
+src/mtgacommentary/config/config.json
 *.wav
 *.bat
 
