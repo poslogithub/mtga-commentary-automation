@@ -235,6 +235,7 @@ class CommentaryBackend(tkinter.Frame):
             ConfigKey.YUKARINETTE_CONNECTOR_NEO : False,
             ConfigKey.YUKARINETTE_CONNECTOR_NEO_URL : "http://localhost:15520/api/input?text="
         }
+        self.no_assistant_seika = False
         self.cids = []
         self.speakers = []
         self.speaker1_obj = {}
@@ -340,7 +341,7 @@ class CommentaryBackend(tkinter.Frame):
         speaker2_index = self.cids.index(self.config.get(ConfigKey.SPEAKER2).get(ConfigKey.CID))
         self.config_window = tkinter.Toplevel(self)
         self.config_window.title("MTGA自動実況ツール - 設定ウィンドウ")
-        self.config_window.geometry("500x250")
+        self.config_window.geometry("520x250")
         self.config_window.grab_set()   # モーダルにする
         self.config_window.focus_set()  # フォーカスを新しいウィンドウをへ移す
         self.config_window.transient(self.master)   # タスクバーに表示しない
@@ -354,40 +355,41 @@ class CommentaryBackend(tkinter.Frame):
         self.sv_opponent_commentary_type = tkinter.StringVar()
         self.sv_wav_output = tkinter.StringVar()
         self.sv_yukarinette_connector_neo = tkinter.StringVar()
+        combobox_width = 44
         button_seikasay2 = tkinter.Button(self.config_frame, text="　参照　", command=self.config_window_seikasay2)
         button_seikasay2.grid(row=0, column=2, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
         label_speaker1 = ttk.Label(self.config_frame, text="話者1: ", anchor="w")
         label_speaker1.grid(row=0, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
-        combobox_speaker1 = ttk.Combobox(self.config_frame, width=40, values=self.speakers, textvariable=self.sv_speaker1, state="readonly")
+        combobox_speaker1 = ttk.Combobox(self.config_frame, width=combobox_width, values=self.speakers, textvariable=self.sv_speaker1, state="readonly")
         combobox_speaker1.current(speaker1_index)
         combobox_speaker1.grid(row=0, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
         button_speaker1 = tkinter.Button(self.config_frame, text="　編集　", command=lambda: self.open_speaker_window(self.sv_speaker1.get().split(" ")[0]))
         button_speaker1.grid(row=0, column=2, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
         label_speaker2 = ttk.Label(self.config_frame, text="話者2: ", anchor="w")
         label_speaker2.grid(row=1, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
-        combobox_speaker2 = ttk.Combobox(self.config_frame, width=40, values=self.speakers, textvariable=self.sv_speaker2, state="readonly")
+        combobox_speaker2 = ttk.Combobox(self.config_frame, width=combobox_width, values=self.speakers, textvariable=self.sv_speaker2, state="readonly")
         combobox_speaker2.current(speaker2_index)
         combobox_speaker2.grid(row=1, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
         button_speaker2 = tkinter.Button(self.config_frame, text="　編集　", command=lambda: self.open_speaker_window(self.sv_speaker2.get().split(" ")[0]))
         button_speaker2.grid(row=1, column=2, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
         label_hero_commentary_type = ttk.Label(self.config_frame, text="自分のアクション: ", anchor="w")
         label_hero_commentary_type.grid(row=2, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
-        combobox_hero_commentary_type = ttk.Combobox(self.config_frame, width=40, values=self.HERO_COMMENTARY_TYPES, textvariable=self.sv_hero_commentary_type, state="readonly")
+        combobox_hero_commentary_type = ttk.Combobox(self.config_frame, width=combobox_width, values=self.HERO_COMMENTARY_TYPES, textvariable=self.sv_hero_commentary_type, state="readonly")
         combobox_hero_commentary_type.current(0 if self.config.get(ConfigKey.HERO_COMMENTARY_TYPE) == ConfigValue.SPEAKER1 else 1)
         combobox_hero_commentary_type.grid(row=2, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
         label_opponent_commentary_type = ttk.Label(self.config_frame, text="対戦相手のアクション: ", anchor="w")
         label_opponent_commentary_type.grid(row=3, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
-        combobox_opponent_commentary_type = ttk.Combobox(self.config_frame, width=40, values=self.OPPONENT_COMMENTARY_TYPES, textvariable=self.sv_opponent_commentary_type, state="readonly")
+        combobox_opponent_commentary_type = ttk.Combobox(self.config_frame, width=combobox_width, values=self.OPPONENT_COMMENTARY_TYPES, textvariable=self.sv_opponent_commentary_type, state="readonly")
         combobox_opponent_commentary_type.current(0 if self.config.get(ConfigKey.OPPONENT_COMMENTARY_TYPE) == ConfigValue.SPEAKER1 else 1 if self.config.get(ConfigKey.OPPONENT_COMMENTARY_TYPE) == ConfigValue.SPEAKER2 else 2)
         combobox_opponent_commentary_type.grid(row=3, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
         label_wav_output = ttk.Label(self.config_frame, text="WAVファイル出力: ", anchor="w")
         label_wav_output.grid(row=4, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
-        combobox_wav_output = ttk.Combobox(self.config_frame, width=40, values=self.WAV_OUTPUT, textvariable=self.sv_wav_output, state="readonly")
+        combobox_wav_output = ttk.Combobox(self.config_frame, width=combobox_width, values=self.WAV_OUTPUT, textvariable=self.sv_wav_output, state="readonly")
         combobox_wav_output.current(0 if not self.config.get(ConfigKey.WAV_OUTPUT) else 1)
         combobox_wav_output.grid(row=4, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
         label_yukarinette_connector_neo = ttk.Label(self.config_frame, text="ゆかりねっとコネクター Neo: ", anchor="w")
         label_yukarinette_connector_neo.grid(row=5, column=0, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
-        combobox_yukarinette_connector_neo = ttk.Combobox(self.config_frame, width=40, values=self.YUKARINETTE_CONNECTOR_NEO, textvariable=self.sv_yukarinette_connector_neo, state="readonly")
+        combobox_yukarinette_connector_neo = ttk.Combobox(self.config_frame, width=combobox_width, values=self.YUKARINETTE_CONNECTOR_NEO, textvariable=self.sv_yukarinette_connector_neo, state="readonly")
         combobox_yukarinette_connector_neo.current(0 if not self.config.get(ConfigKey.YUKARINETTE_CONNECTOR_NEO) else 1)
         combobox_yukarinette_connector_neo.grid(row=5, column=1, sticky=tkinter.W + tkinter.E, padx=5, pady=5)
         button_ok = tkinter.Button(self.config_frame, text="　開始　", command=self.config_window_ok)
@@ -711,25 +713,11 @@ class CommentaryBackend(tkinter.Frame):
                 # ゆかりねっとコネクター Neoに発話内容を連携
                 self.start_http_client(self.config.get(ConfigKey.YUKARINETTE_CONNECTOR_NEO_URL) + urllib.parse.quote(text))
 
-            speaked_text = self.seikasay2.speak( \
-                cid=cid, \
-                text=text, \
-                asynchronize=speak_param_obj.get(SpeakerParamKey.ASYNC), \
-                volume=speak_param_obj.get(SpeakerParamKey.VOLUME), \
-                speed=speak_param_obj.get(SpeakerParamKey.SPEED), \
-                pitch=speak_param_obj.get(SpeakerParamKey.PITCH), \
-                alpha=speak_param_obj.get(SpeakerParamKey.ALPHA), \
-                intonation=speak_param_obj.get(SpeakerParamKey.INTONATION), \
-                emotionEP=speak_param_obj.get(SpeakerParamKey.EMOTION_EP), \
-                emotionP=speak_param_obj.get(SpeakerParamKey.EMOTION_P), \
-                overBanner=speak_param_obj.get(SpeakerParamKey.OVER_BANNER) \
-            )
-            if self.config.get(ConfigKey.WAV_OUTPUT) and save:
-                cmd = self.seikasay2.get_speak_command( \
+            if not self.no_assistant_seika:
+                speaked_text = self.seikasay2.speak( \
                     cid=cid, \
                     text=text, \
                     asynchronize=speak_param_obj.get(SpeakerParamKey.ASYNC), \
-                    save=self.WAV_OUTPUT_DIR+"\\"+datetime.now().strftime('%Y%m%d_%H%M%S_%f')+"_"+self.get_speaker_name(cid)+"「"+text+"」.wav", \
                     volume=speak_param_obj.get(SpeakerParamKey.VOLUME), \
                     speed=speak_param_obj.get(SpeakerParamKey.SPEED), \
                     pitch=speak_param_obj.get(SpeakerParamKey.PITCH), \
@@ -739,8 +727,25 @@ class CommentaryBackend(tkinter.Frame):
                     emotionP=speak_param_obj.get(SpeakerParamKey.EMOTION_P), \
                     overBanner=speak_param_obj.get(SpeakerParamKey.OVER_BANNER) \
                 )
-                with open(self.BAT_FOR_WAV_FILE, 'a') as af:
-                    af.write(cmd+"\n")
+                if self.config.get(ConfigKey.WAV_OUTPUT) and save:
+                    cmd = self.seikasay2.get_speak_command( \
+                        cid=cid, \
+                        text=text, \
+                        asynchronize=speak_param_obj.get(SpeakerParamKey.ASYNC), \
+                        save=self.WAV_OUTPUT_DIR+"\\"+datetime.now().strftime('%Y%m%d_%H%M%S_%f')+"_"+self.get_speaker_name(cid)+"「"+text+"」.wav", \
+                        volume=speak_param_obj.get(SpeakerParamKey.VOLUME), \
+                        speed=speak_param_obj.get(SpeakerParamKey.SPEED), \
+                        pitch=speak_param_obj.get(SpeakerParamKey.PITCH), \
+                        alpha=speak_param_obj.get(SpeakerParamKey.ALPHA), \
+                        intonation=speak_param_obj.get(SpeakerParamKey.INTONATION), \
+                        emotionEP=speak_param_obj.get(SpeakerParamKey.EMOTION_EP), \
+                        emotionP=speak_param_obj.get(SpeakerParamKey.EMOTION_P), \
+                        overBanner=speak_param_obj.get(SpeakerParamKey.OVER_BANNER) \
+                    )
+                    with open(self.BAT_FOR_WAV_FILE, 'a') as af:
+                        af.write(cmd+"\n")
+            else:
+                speaked_text = text
 
             return speaked_text
         else:
@@ -836,36 +841,41 @@ class CommentaryBackend(tkinter.Frame):
                     pass
                 elif ans == False:
                     self.logger.info("AssistantSeika running check: NG")
+                    self.no_assistant_seika = True
                     running = True
             else:
                 self.logger.info("AssistantSeika running check: OK")
 
-        self.logger.info(ProcessName.SEIKA_SAY2+" existence check")
-        running = False
-        while not running:
-            if os.path.exists(self.config.get(ConfigKey.SEIKA_SAY2_PATH)):
-                running = True
-            else:
-                messagebox.showinfo(ProcessName.SEIKA_SAY2+" 存在確認", "{} が見つかりませんでした。\r\nこの後に表示されるファイルダイアログで {} を選択してください。".format(ProcessName.SEIKA_SAY2, ProcessName.SEIKA_SAY2))
-                self.config[ConfigKey.SEIKA_SAY2_PATH] = filedialog.askopenfilename(filetype=[(ProcessName.SEIKA_SAY2,"*.exe")], initialdir=os.getcwd())
-        self.seikasay2 = SeikaSay2(self.config.get(ConfigKey.SEIKA_SAY2_PATH))
-
-        self.logger.info("Get speakers from AssistantSeika")
-        running = False
-        while not running:
-            self.get_speaker_list()
-            if self.cids:
-                running = True
-                self.logger.info("Get cids from AssistantSeika: OK")
-                break
-            else:
-                ans = messagebox.askyesno("AssistantSeika 話者一覧取得", "AssistantSeikaの話者一覧が空です。\r\n製品スキャンが未実行か、AssistantSeikaに対応している音声合成製品が未起動である可能性があります。\r\nはい: 再試行\r\nいいえ: 無視して続行")
-                if ans == True:
-                    pass
-                elif ans == False:
-                    self.logger.info("Get cids from AssistantSeika: NG")
+        if not self.no_assistant_seika:
+            self.logger.info(ProcessName.SEIKA_SAY2+" existence check")
+            running = False
+            while not running:
+                if os.path.exists(self.config.get(ConfigKey.SEIKA_SAY2_PATH)):
                     running = True
-        
+                else:
+                    messagebox.showinfo(ProcessName.SEIKA_SAY2+" 存在確認", "{} が見つかりませんでした。\r\nこの後に表示されるファイルダイアログで {} を選択してください。".format(ProcessName.SEIKA_SAY2, ProcessName.SEIKA_SAY2))
+                    self.config[ConfigKey.SEIKA_SAY2_PATH] = filedialog.askopenfilename(filetype=[(ProcessName.SEIKA_SAY2,"*.exe")], initialdir=os.getcwd())
+            self.seikasay2 = SeikaSay2(self.config.get(ConfigKey.SEIKA_SAY2_PATH))
+
+            self.logger.info("Get speakers from AssistantSeika")
+            running = False
+            while not running:
+                self.get_speaker_list()
+                if self.cids:
+                    running = True
+                    self.logger.info("Get cids from AssistantSeika: OK")
+                    break
+                else:
+                    ans = messagebox.askyesno("AssistantSeika 話者一覧取得", "AssistantSeikaの話者一覧が空です。\r\n製品スキャンが未実行か、AssistantSeikaに対応している音声合成製品が未起動である可能性があります。\r\nはい: 再試行\r\nいいえ: 無視して続行")
+                    if ans == True:
+                        pass
+                    elif ans == False:
+                        self.logger.info("Get cids from AssistantSeika: NG")
+                        running = True
+        else:
+            self.cids.append("0000")
+            self.speakers.append("0000 ダミー話者  - ゆかりねっとコネクター Neo連携用")
+
         self.logger.debug(self.speakers)
 
         if not self.config.get(ConfigKey.SPEAKER1).get(ConfigKey.CID):
@@ -890,10 +900,6 @@ class CommentaryBackend(tkinter.Frame):
         self.speak_config()
 
         self.master.mainloop()
-        #try:
-        #    self.ws.run_forever()
-        #except KeyboardInterrupt:
-        #    self.ws.close()
 
         self.ws.close()
 
