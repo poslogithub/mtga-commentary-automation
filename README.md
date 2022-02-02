@@ -3,8 +3,7 @@
 MTGATrackerのbackend、およびAssistantSeikaと組み合わせて、VOICEROID等にMTGAの実況をしてもらうためのツールです。<br />
 このREADMEには仕様的な内容を記載します。<br />
 開発メモは[Wiki](https://github.com/poslogithub/mtga-commentary-automation/wiki)に記載します。<br />
-配布バイナリの導入手順と簡単な使い方は[配布用リポジトリ](https://github.com/poslogithub/binary-dist)のREADME.mdを参照してください。<br />
-詳細な使い方は配布用リポジトリの[commentary_backend_MANUAL.md](https://github.com/poslogithub/binary-dist/blob/main/commentary_backend_MANUAL.md)を参照してください。<br />
+配布バイナリの導入手順と詳細な使い方は[配布用リポジトリ](https://github.com/poslogithub/binary-dist)のREADME.mdを参照してください。<br />
 
 ## 実況内容
 
