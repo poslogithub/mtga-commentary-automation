@@ -122,4 +122,4 @@ src/mtgacommentary/sample.json
 src/mtgacommentary/config/config.json
 *.wav
 *.bat
-
+*.ico
