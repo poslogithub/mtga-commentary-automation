@@ -1,0 +1,17 @@
+﻿{
+    "seikaSay2Path": "D:/github/mtga-commentary-automation/src/mtgacommentary/SeikaSay2.exe",
+    "speaker1": {
+        "cid": "1707",
+        "name": "1707 東北きりたん EX  - VOICEROID+EX(32)"
+    },
+    "speaker2": {
+        "cid": "1707",
+        "name": "1707 東北きりたん EX  - VOICEROID+EX(32)"
+    },
+    "heroCommentaryType": "speaker1",
+    "opponentCommentaryType": "speaker1",
+    "mtgatrackerBackendUrl": "ws://localhost:8089",
+    "wavOutput": false,
+    "yukarinetteConnectorNeo": true,
+    "yukarinetteConnectorNeoUrl": "http://localhost:15520/api/input?text="
+}

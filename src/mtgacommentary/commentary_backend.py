@@ -315,7 +315,7 @@ class CommentaryBackend(tkinter.Frame):
         t.start()
 
     def connect_to_yukarinette_conecctor_neo(self, url):
-        urllib.request.urlopen(url=url)
+        urllib.request.urlopen(url=url).close()
 
     def load_config(self, config_file=None):
         if not config_file:
