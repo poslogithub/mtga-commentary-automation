@@ -7,11 +7,12 @@ import logging.handlers
 import os
 import re
 import sys
+from threading import Thread
 import tkinter
 from tkinter import StringVar, filedialog, messagebox, ttk
 from tkinter.scrolledtext import ScrolledText
-import urllib.parse
-import urllib.request
+from urllib.parse import quote
+from urllib.request import urlopen
 import psutil
 import websocket
 
@@ -296,8 +297,7 @@ class CommentaryBackend(tkinter.Frame):
             self.master.destroy()
 
     def start_ws_client(self):
-        import threading
-        t = threading.Thread(target=self.connect_to_socket)
+        t = Thread(target=self.connect_to_socket)
         t.start()
 
     def connect_to_socket(self):
@@ -310,12 +310,12 @@ class CommentaryBackend(tkinter.Frame):
         self.ws.run_forever()
     
     def start_http_client(self, url):
-        import threading
-        t = threading.Thread(target=self.connect_to_yukarinette_conecctor_neo, args=(url,))
+        t = Thread(target=self.connect_to_yukarinette_conecctor_neo, args=(url,))
         t.start()
 
     def connect_to_yukarinette_conecctor_neo(self, url):
-        urllib.request.urlopen(url=url)
+        with urlopen(url=url) as response:
+            _ = response.read()
 
     def load_config(self, config_file=None):
         if not config_file:
@@ -711,7 +711,7 @@ class CommentaryBackend(tkinter.Frame):
         if cid and text:
             if self.config.get(ConfigKey.YUKARINETTE_CONNECTOR_NEO) and save:
                 # ゆかりねっとコネクター Neoに発話内容を連携
-                self.start_http_client(self.config.get(ConfigKey.YUKARINETTE_CONNECTOR_NEO_URL) + urllib.parse.quote(text))
+                self.start_http_client(self.config.get(ConfigKey.YUKARINETTE_CONNECTOR_NEO_URL) + quote(text))
 
             if not self.no_assistant_seika:
                 speaked_text = self.seikasay2.speak( \
