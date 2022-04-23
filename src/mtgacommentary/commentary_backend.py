@@ -443,7 +443,7 @@ class CommentaryBackend(tkinter.Frame):
         speakers = self.load_speaker(cid)
         self.speaker_window = tkinter.Toplevel(self.config_window)
         self.speaker_window.title("MTGA自動実況ツール - 話者ウィンドウ - {}".format(self.get_speaker_name(cid)))
-        self.speaker_window.geometry("940x600")
+        self.speaker_window.geometry("940x620")
         self.speaker_window.grab_set()   # モーダルにする
         self.speaker_window.focus_set()  # フォーカスを新しいウィンドウをへ移す
         self.speaker_window.transient(self.master)   # タスクバーに表示しない
@@ -539,7 +539,7 @@ class CommentaryBackend(tkinter.Frame):
                     parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
                     parsed[ParseKey.MESSAGE_TYPE] = text_array[2].get(MessageKey.TYPE)    # ability
 
-                    # ":"が入らない場合は"'s'"の直後を主語にする
+                    # ":"が入らない場合は"'s"の直後を主語にする
                     if len(text_array) >= 4 and text_array[3].strip() != ":":   # ex: "CARDNAME1 's ability exiles CARDNAME2"
                         text_array = text_array[2:]
 
@@ -579,7 +579,9 @@ class CommentaryBackend(tkinter.Frame):
                     parsed[ParseKey.CARD] = parsed[ParseKey.TARGET] # 念のため
                     parsed[ParseKey.EVENT] = Event.COUNTERED
                 elif parsed.get(ParseKey.VERB) == Verb.CREATES:
-                    parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
+                    parsed[ParseKey.IS_OPPONENT] = True if text_array[2].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
+                    parsed[ParseKey.SOURCE] = self.del_ruby(text_array[0].get(MessageKey.TEXT))
+                    parsed[ParseKey.TARGET] = self.del_ruby(text_array[2].get(MessageKey.TEXT))
                     parsed[ParseKey.CARD] = self.del_ruby(text_array[2].get(MessageKey.TEXT))
                     parsed[ParseKey.EVENT] = Event.CREATE_TOKEN
                 elif parsed.get(ParseKey.VERB) == Verb.DRAWS:

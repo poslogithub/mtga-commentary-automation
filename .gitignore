@@ -125,3 +125,8 @@ src/mtgacommentary/config/config.json
 *.ico
 commentary_backend.log*
 commentary_backend.log.1
+config/1707.json
+commentary_backend.log.1
+config/1707.json
+config/2001.json
+config/2002.json
