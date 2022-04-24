@@ -140,7 +140,7 @@ class SpeakerLabel:
     PLAY_LAND = "土地をプレイした時"
     CAST_SPELL = "呪文を唱えた時"
     COUNTERED = "呪文が打ち消された時"
-    CREATE_TOKEN = "トークンを生成した時"
+    CREATE_TOKEN = "トークンが生成された時"
     RESOLVE = "呪文が解決した時"
     EXILE = "カードが追放された時"
     CONJURE = "墓地にカードが置かれた時（創出）"
@@ -192,7 +192,7 @@ class SpeakerWindowEntry(Enum):
     PLAY_LAND = (Event.PLAY_LAND, "土地をプレイした時:")
     CAST_SPELL = (Event.CAST_SPELL, "呪文を唱えた時:")
     COUNTERED = (Event.COUNTERED, "呪文が打ち消された時:")
-    CREATE_TOKEN = (Event.CREATE_TOKEN, "トークンを生成した時:")
+    CREATE_TOKEN = (Event.CREATE_TOKEN, "トークンが生成された時:")
     RESOLVE = (Event.RESOLVE, "呪文が解決された時:")
     ATTACK = (Event.ATTACK, "攻撃クリーチャー指定時:")
     BLOCK = (Event.BLOCK, "ブロッククリーチャー指定時:")
