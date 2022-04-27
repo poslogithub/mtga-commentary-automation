@@ -162,7 +162,22 @@
         ]
     },
     {
-        "_description": "呪文が解決された時",
+        "_description": "トークンを生成した時",
+        "event": "CreateToken",
+        "speak": [
+            {
+                "text": "{card}を生成"
+            },
+            {
+                "text": "お相手が{card}を生成"
+            },
+            {
+                "text": "{card}を生成"
+            }
+        ]
+    },
+    {
+        "_description": "呪文や能力を解決した時",
         "event": "Resolve",
         "speak": [
             {
@@ -252,7 +267,7 @@
         ]
     },
     {
-        "_description": "パーマネントが破壊された時",
+        "_description": "パーマネントを破壊した時",
         "event": "Destroy",
         "speak": [
             {
@@ -282,7 +297,7 @@
         ]
     },
     {
-        "_description": "カードが追放された時",
+        "_description": "カードを追放した時",
         "event": "Exile",
         "speak": [
             {
@@ -297,7 +312,7 @@
         ]
     },
     {
-        "_description": "カードが墓地に置かれた時",
+        "_description": "カードを墓地に置いた時",
         "event": "PutIntoGraveyard",
         "speak": [
             {
@@ -312,7 +327,7 @@
         ]
     },
     {
-        "_description": "カードが創出された時",
+        "_description": "カードを創出した時",
         "event": "Conjure",
         "speak": [
             {

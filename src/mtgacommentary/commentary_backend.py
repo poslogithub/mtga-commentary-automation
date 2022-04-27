@@ -36,6 +36,7 @@ class Verb:
     BLOCKS = "blocks"
     CASTS = "casts"
     COUNTERS = "counters"
+    CREATES = "creates"
     DRAWS = "draws"
     EXILES = "exiles"
     LIFE_TOTAL_CHANGED = "'s life total changed"
@@ -55,6 +56,7 @@ class Reason:
     SACRIFICE = "(Sacrifice)"
     SBA_DAMEGE = "(SBA_Damage)"
     SBA_DEATHTOUCH = "(SBA_Deathtouch)",
+    SBA_ZERO_LOYALTY = "(SBA_ZeroLoyalty)"
     SBA_ZERO_TOUGHNESS = "(SBA_ZeroToughness)"
     SBA_UNATTACHED_AURA = "(SBA_UnattachedAura)"
     NIL = "(nil)"
@@ -138,6 +140,7 @@ class SpeakerLabel:
     PLAY_LAND = "土地をプレイした時"
     CAST_SPELL = "呪文を唱えた時"
     COUNTERED = "呪文が打ち消された時"
+    CREATE_TOKEN = "トークンが生成された時"
     RESOLVE = "呪文が解決した時"
     EXILE = "カードが追放された時"
     CONJURE = "墓地にカードが置かれた時（創出）"
@@ -164,6 +167,7 @@ class Event:
     PLAY_LAND = "PlayLand"
     CAST_SPELL = "CastSpell"
     COUNTERED = "Countered"
+    CREATE_TOKEN = "CreateToken"
     RESOLVE = "Resolve"
     ATTACK = "Attack"
     BLOCK = "Block"
@@ -188,6 +192,7 @@ class SpeakerWindowEntry(Enum):
     PLAY_LAND = (Event.PLAY_LAND, "土地をプレイした時:")
     CAST_SPELL = (Event.CAST_SPELL, "呪文を唱えた時:")
     COUNTERED = (Event.COUNTERED, "呪文が打ち消された時:")
+    CREATE_TOKEN = (Event.CREATE_TOKEN, "トークンが生成された時:")
     RESOLVE = (Event.RESOLVE, "呪文が解決された時:")
     ATTACK = (Event.ATTACK, "攻撃クリーチャー指定時:")
     BLOCK = (Event.BLOCK, "ブロッククリーチャー指定時:")
@@ -438,7 +443,7 @@ class CommentaryBackend(tkinter.Frame):
         speakers = self.load_speaker(cid)
         self.speaker_window = tkinter.Toplevel(self.config_window)
         self.speaker_window.title("MTGA自動実況ツール - 話者ウィンドウ - {}".format(self.get_speaker_name(cid)))
-        self.speaker_window.geometry("940x600")
+        self.speaker_window.geometry("940x620")
         self.speaker_window.grab_set()   # モーダルにする
         self.speaker_window.focus_set()  # フォーカスを新しいウィンドウをへ移す
         self.speaker_window.transient(self.master)   # タスクバーに表示しない
@@ -534,7 +539,7 @@ class CommentaryBackend(tkinter.Frame):
                     parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
                     parsed[ParseKey.MESSAGE_TYPE] = text_array[2].get(MessageKey.TYPE)    # ability
 
-                    # ":"が入らない場合は"'s'"の直後を主語にする
+                    # ":"が入らない場合は"'s"の直後を主語にする
                     if len(text_array) >= 4 and text_array[3].strip() != ":":   # ex: "CARDNAME1 's ability exiles CARDNAME2"
                         text_array = text_array[2:]
 
@@ -573,6 +578,12 @@ class CommentaryBackend(tkinter.Frame):
                     parsed[ParseKey.TARGET] = self.del_ruby(text_array[2].get(MessageKey.TEXT))
                     parsed[ParseKey.CARD] = parsed[ParseKey.TARGET] # 念のため
                     parsed[ParseKey.EVENT] = Event.COUNTERED
+                elif parsed.get(ParseKey.VERB) == Verb.CREATES:
+                    parsed[ParseKey.IS_OPPONENT] = True if text_array[2].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
+                    parsed[ParseKey.SOURCE] = self.del_ruby(text_array[0].get(MessageKey.TEXT))
+                    parsed[ParseKey.TARGET] = self.del_ruby(text_array[2].get(MessageKey.TEXT))
+                    parsed[ParseKey.CARD] = self.del_ruby(text_array[2].get(MessageKey.TEXT))
+                    parsed[ParseKey.EVENT] = Event.CREATE_TOKEN
                 elif parsed.get(ParseKey.VERB) == Verb.DRAWS:
                     parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
                     if len(text_array) >= 3:
@@ -607,7 +618,7 @@ class CommentaryBackend(tkinter.Frame):
                     parsed[ParseKey.CARD] = self.del_ruby(text_array[0].get(MessageKey.TEXT))
                     parsed[ParseKey.TARGET] = parsed[ParseKey.CARD] # 念のため
                     parsed[ParseKey.REASON] = text_array[2]
-                    if parsed.get(ParseKey.REASON) in [Reason.SBA_DAMEGE, Reason.SBA_DEATHTOUCH, Reason.SBA_ZERO_TOUGHNESS]: # 死亡（致死ダメージ、接死ダメージ、タフネス0未満）
+                    if parsed.get(ParseKey.REASON) in [Reason.SBA_DAMEGE, Reason.SBA_DEATHTOUCH, Reason.SBA_ZERO_TOUGHNESS, Reason.SBA_ZERO_LOYALTY]: # 死亡（致死ダメージ、接死ダメージ、タフネス0未満、忠誠度0）
                         parsed[ParseKey.EVENT] = Event.DIE
                     elif parsed.get(ParseKey.REASON) in [Reason.DESTROY]: # 破壊
                         parsed[ParseKey.EVENT] = Event.DESTROY
