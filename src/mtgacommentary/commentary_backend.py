@@ -8,16 +8,11 @@ import os
 import re
 import sys
 from threading import Thread
-from time import sleep
-import asyncio
-import aiohttp
 import tkinter
 from tkinter import StringVar, filedialog, messagebox, ttk
 from tkinter.scrolledtext import ScrolledText
 from urllib.parse import quote
 from urllib.request import urlopen
-from http.client import RemoteDisconnected
-import requests
 import psutil
 import websocket
 
