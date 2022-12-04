@@ -19,11 +19,17 @@ import websocket
 from seikasay2 import SeikaSay2
 
 
+
 # message from mtgatracker_backend
 class MessageKey:
     GAME_HISTORY_EVENT = "game_history_event"
     TYPE = "type"
     TEXT = "text"
+    DRAFT_PICK_EVENT = "draft_pick_event"
+    DRAFT_PACK_EVENT = "draft_pack_event"
+    PACK = "Pack"
+    PICK = "Pick"
+    CARD_NAME = "CardName"
 
 class MessageValue:
     GAME = "game"
@@ -298,7 +304,7 @@ class CommentaryBackend(tkinter.Frame):
                 af.write(self.master_text.get("1.0","end"))
 
     def master_frame_quit(self):
-        if messagebox.askyesno("終了確認", "終了してよろしいですか？"):
+        if messagebox.askyesno("commentary_backend 終了確認", "終了してよろしいですか？"):
             self.master.destroy()
 
     def start_ws_client(self):
@@ -505,146 +511,142 @@ class CommentaryBackend(tkinter.Frame):
     def del_ruby(self, s):
         return re.sub("（.+?）", "", re.sub("<.+?>", "", s))
 
-    def parse(self, blob):
-        self.logger.debug(blob)
-        if blob:
-            text_array = blob.get(MessageKey.GAME_HISTORY_EVENT)
-            if not text_array:
-                return None
-            parsed = {}
+    def parse(self, text_array):
+        if not text_array:
+            return None
+        parsed = {}
 
-            if len(text_array) == 0:
-                self.logger.warning("warning: 長さ0のtext_array")
-            elif len(text_array) == 1:
-                if text_array[0].get(MessageKey.TYPE) == MessageValue.GAME: # ゲーム終了  {"text": "screenName won!", "type": "game"}
-                    parsed[ParseKey.MESSAGE_TYPE] = text_array[0].get(MessageKey.TYPE)
-                    if text_array[0].get(MessageKey.TEXT).startswith(self.hero_screen_name):
-                        parsed[ParseKey.EVENT] = Event.GAME_WIN
-                    else:
-                        parsed[ParseKey.EVENT] = Event.GAME_LOSE
-                elif text_array[0].get(MessageKey.TYPE) == MessageValue.TURN:   # ターン開始  { "text": "N / screenName Turn M", "type": "turn" }
-                    if text_array[0].get(MessageKey.TEXT).find(self.opponent_screen_name) >= 0:
-                        parsed[ParseKey.IS_OPPONENT] = True
-                    parsed[ParseKey.MESSAGE_TYPE] = text_array[0].get(MessageKey.TYPE)
-                    parsed[ParseKey.EVENT] = Event.TURN_START
+        if len(text_array) == 0:
+            self.logger.warning("warning: 長さ0のtext_array")
+        elif len(text_array) == 1:
+            if text_array[0].get(MessageKey.TYPE) == MessageValue.GAME: # ゲーム終了  {"text": "screenName won!", "type": "game"}
+                parsed[ParseKey.MESSAGE_TYPE] = text_array[0].get(MessageKey.TYPE)
+                if text_array[0].get(MessageKey.TEXT).startswith(self.hero_screen_name):
+                    parsed[ParseKey.EVENT] = Event.GAME_WIN
                 else:
-                    self.logger.warning("warning: 不明なtype: {}".format(text_array[0].get(MessageKey.TYPE)))
+                    parsed[ParseKey.EVENT] = Event.GAME_LOSE
+            elif text_array[0].get(MessageKey.TYPE) == MessageValue.TURN:   # ターン開始  { "text": "N / screenName Turn M", "type": "turn" }
+                if text_array[0].get(MessageKey.TEXT).find(self.opponent_screen_name) >= 0:
+                    parsed[ParseKey.IS_OPPONENT] = True
+                parsed[ParseKey.MESSAGE_TYPE] = text_array[0].get(MessageKey.TYPE)
+                parsed[ParseKey.EVENT] = Event.TURN_START
             else:
+                self.logger.warning("warning: 不明なtype: {}".format(text_array[0].get(MessageKey.TYPE)))
+        else:
+            parsed[ParseKey.VERB] = text_array[1].strip()
+
+            # 動詞が"'s"の場合はガチャガチャする
+            if parsed.get(ParseKey.VERB) == "'s":   # { "text": カード名, "type": hero/opponent }, "'s ", { "text": ability, "type": "ability"}, ...
+                parsed[ParseKey.SOURCE] = text_array[0].get(MessageKey.TEXT)
+                parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
+                parsed[ParseKey.MESSAGE_TYPE] = text_array[2].get(MessageKey.TYPE)    # ability
+
+                # ":"が入らない場合は"'s"の直後を主語にする
+                if len(text_array) >= 4 and text_array[3].strip() != ":":   # ex: "CARDNAME1 's ability exiles CARDNAME2"
+                    text_array = text_array[2:]
+
+                # ":"が入る場合は":"の直後を主語にする
+                elif len(text_array) >= 6 and text_array[3].strip() == ":": # ex: "CARDNAME1 's ability : SCREENNAME draws CARDNAME2"
+                    text_array = text_array[4:]
                 parsed[ParseKey.VERB] = text_array[1].strip()
 
-                # 動詞が"'s"の場合はガチャガチャする
-                if parsed.get(ParseKey.VERB) == "'s":   # { "text": カード名, "type": hero/opponent }, "'s ", { "text": ability, "type": "ability"}, ...
-                    parsed[ParseKey.SOURCE] = text_array[0].get(MessageKey.TEXT)
-                    parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
-                    parsed[ParseKey.MESSAGE_TYPE] = text_array[2].get(MessageKey.TYPE)    # ability
+            # 動詞が":"の場合は":"の直後を主語にする
+            if parsed.get(ParseKey.VERB) == ":":    # { "text": カード名, "type": "opponent" }, ": ", { "text": screenName, "type": "opponent" }, ...
+                parsed[ParseKey.SOURCE] = text_array[0].get(MessageKey.TEXT)
+                if len(text_array) >= 4:   # ex: "CARDNAME1 : SCREENNAME draws CARDNAME2"
+                    text_array = text_array[2:]
+                parsed[ParseKey.VERB] = text_array[1].strip()
 
-                    # ":"が入らない場合は"'s"の直後を主語にする
-                    if len(text_array) >= 4 and text_array[3].strip() != ":":   # ex: "CARDNAME1 's ability exiles CARDNAME2"
-                        text_array = text_array[2:]
-
-                    # ":"が入る場合は":"の直後を主語にする
-                    elif len(text_array) >= 6 and text_array[3].strip() == ":": # ex: "CARDNAME1 's ability : SCREENNAME draws CARDNAME2"
-                        text_array = text_array[4:]
-                    parsed[ParseKey.VERB] = text_array[1].strip()
-
-                # 動詞が":"の場合は":"の直後を主語にする
-                if parsed.get(ParseKey.VERB) == ":":    # { "text": カード名, "type": "opponent" }, ": ", { "text": screenName, "type": "opponent" }, ...
-                    parsed[ParseKey.SOURCE] = text_array[0].get(MessageKey.TEXT)
-                    if len(text_array) >= 4:   # ex: "CARDNAME1 : SCREENNAME draws CARDNAME2"
-                        text_array = text_array[2:]
-                    parsed[ParseKey.VERB] = text_array[1].strip()
-
-                if parsed.get(ParseKey.VERB) == Verb.ATTAKING:  # 攻撃クリーチャー指定時  { "text": カード名, "type": hero/opponent }, " attacking"
-                    parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
-                    parsed[ParseKey.ATTACKER] = self.del_ruby(text_array[0].get(MessageKey.TEXT))
-                    parsed[ParseKey.CARD] = parsed[ParseKey.ATTACKER]   # 念のため
-                    parsed[ParseKey.EVENT] = Event.ATTACK
-                elif parsed.get(ParseKey.VERB) == Verb.BLOCKS:
-                    parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
-                    parsed[ParseKey.BLOCKER] = self.del_ruby(text_array[0].get(MessageKey.TEXT))
-                    parsed[ParseKey.ATTACKER] = self.del_ruby(text_array[2].get(MessageKey.TEXT))
-                    parsed[ParseKey.CARD] = parsed[ParseKey.BLOCKER]   # 念のため
-                    parsed[ParseKey.SOURCE] = parsed[ParseKey.BLOCKER]   # 念のため
-                    parsed[ParseKey.TARGET] = parsed[ParseKey.ATTACKER]   # 念のため
-                    parsed[ParseKey.EVENT] = Event.BLOCK
-                elif parsed.get(ParseKey.VERB) == Verb.CASTS:
-                    parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
-                    parsed[ParseKey.CARD] = self.del_ruby(text_array[2].get(MessageKey.TEXT))
-                    parsed[ParseKey.EVENT] = Event.CAST_SPELL
-                elif parsed.get(ParseKey.VERB) == Verb.COUNTERS:
-                    parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
-                    parsed[ParseKey.SOURCE] = self.del_ruby(text_array[0].get(MessageKey.TEXT))
-                    parsed[ParseKey.TARGET] = self.del_ruby(text_array[2].get(MessageKey.TEXT))
-                    parsed[ParseKey.CARD] = parsed[ParseKey.TARGET] # 念のため
-                    parsed[ParseKey.EVENT] = Event.COUNTERED
-                elif parsed.get(ParseKey.VERB) == Verb.CREATES:
-                    parsed[ParseKey.IS_OPPONENT] = True if text_array[2].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
-                    parsed[ParseKey.SOURCE] = self.del_ruby(text_array[0].get(MessageKey.TEXT))
-                    parsed[ParseKey.TARGET] = self.del_ruby(text_array[2].get(MessageKey.TEXT))
-                    parsed[ParseKey.CARD] = self.del_ruby(text_array[2].get(MessageKey.TEXT))
-                    parsed[ParseKey.EVENT] = Event.CREATE_TOKEN
-                elif parsed.get(ParseKey.VERB) == Verb.DRAWS:
-                    parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
-                    if len(text_array) >= 3:
-                        parsed[ParseKey.CARD] = self.del_ruby(text_array[2].get(MessageKey.TEXT))
-                        parsed[ParseKey.TARGET] = parsed[ParseKey.CARD] # 念のため
-                    parsed[ParseKey.EVENT] = Event.DRAW
-                elif parsed.get(ParseKey.VERB) == Verb.EXILES:
-                    parsed[ParseKey.IS_OPPONENT] = True if text_array[2].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
+            if parsed.get(ParseKey.VERB) == Verb.ATTAKING:  # 攻撃クリーチャー指定時  { "text": カード名, "type": hero/opponent }, " attacking"
+                parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
+                parsed[ParseKey.ATTACKER] = self.del_ruby(text_array[0].get(MessageKey.TEXT))
+                parsed[ParseKey.CARD] = parsed[ParseKey.ATTACKER]   # 念のため
+                parsed[ParseKey.EVENT] = Event.ATTACK
+            elif parsed.get(ParseKey.VERB) == Verb.BLOCKS:
+                parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
+                parsed[ParseKey.BLOCKER] = self.del_ruby(text_array[0].get(MessageKey.TEXT))
+                parsed[ParseKey.ATTACKER] = self.del_ruby(text_array[2].get(MessageKey.TEXT))
+                parsed[ParseKey.CARD] = parsed[ParseKey.BLOCKER]   # 念のため
+                parsed[ParseKey.SOURCE] = parsed[ParseKey.BLOCKER]   # 念のため
+                parsed[ParseKey.TARGET] = parsed[ParseKey.ATTACKER]   # 念のため
+                parsed[ParseKey.EVENT] = Event.BLOCK
+            elif parsed.get(ParseKey.VERB) == Verb.CASTS:
+                parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
+                parsed[ParseKey.CARD] = self.del_ruby(text_array[2].get(MessageKey.TEXT))
+                parsed[ParseKey.EVENT] = Event.CAST_SPELL
+            elif parsed.get(ParseKey.VERB) == Verb.COUNTERS:
+                parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
+                parsed[ParseKey.SOURCE] = self.del_ruby(text_array[0].get(MessageKey.TEXT))
+                parsed[ParseKey.TARGET] = self.del_ruby(text_array[2].get(MessageKey.TEXT))
+                parsed[ParseKey.CARD] = parsed[ParseKey.TARGET] # 念のため
+                parsed[ParseKey.EVENT] = Event.COUNTERED
+            elif parsed.get(ParseKey.VERB) == Verb.CREATES:
+                parsed[ParseKey.IS_OPPONENT] = True if text_array[2].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
+                parsed[ParseKey.SOURCE] = self.del_ruby(text_array[0].get(MessageKey.TEXT))
+                parsed[ParseKey.TARGET] = self.del_ruby(text_array[2].get(MessageKey.TEXT))
+                parsed[ParseKey.CARD] = self.del_ruby(text_array[2].get(MessageKey.TEXT))
+                parsed[ParseKey.EVENT] = Event.CREATE_TOKEN
+            elif parsed.get(ParseKey.VERB) == Verb.DRAWS:
+                parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
+                if len(text_array) >= 3:
                     parsed[ParseKey.CARD] = self.del_ruby(text_array[2].get(MessageKey.TEXT))
                     parsed[ParseKey.TARGET] = parsed[ParseKey.CARD] # 念のため
-                    parsed[ParseKey.EVENT] = Event.EXILE
-                elif parsed.get(ParseKey.VERB) == Verb.LIFE_TOTAL_CHANGED:
-                    parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
-                    parsed[ParseKey.LIFE_FROM] = int(text_array[2].split(" -> ")[0])
-                    parsed[ParseKey.LIFE_TO] = int(text_array[2].split(" -> ")[1])
-                    parsed[ParseKey.SOURCE] = parsed[ParseKey.LIFE_FROM] # 念のため
-                    parsed[ParseKey.TARGET] = parsed[ParseKey.LIFE_TO] # 念のため
-                    parsed[ParseKey.EVENT] = Event.LIFE_GAIN if parsed[ParseKey.LIFE_FROM] < parsed[ParseKey.LIFE_TO] else Event.LIFE_LOSE
-                    parsed[ParseKey.LIFE_DIFF] = abs(parsed[ParseKey.LIFE_TO] - parsed[ParseKey.LIFE_FROM])
-                elif parsed.get(ParseKey.VERB) == Verb.PLAYS:
-                    parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
-                    parsed[ParseKey.CARD] = self.del_ruby(text_array[2].get(MessageKey.TEXT))
-                    parsed[ParseKey.TARGET] = parsed[ParseKey.CARD] # 念のため
-                    parsed[ParseKey.EVENT] = Event.PLAY_LAND
-                elif parsed.get(ParseKey.VERB) == Verb.RESOLVES:
-                    parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
-                    parsed[ParseKey.CARD] = self.del_ruby(text_array[0].get(MessageKey.TEXT))
-                    parsed[ParseKey.TARGET] = parsed[ParseKey.CARD] # 念のため
-                    parsed[ParseKey.EVENT] = Event.RESOLVE
-                elif parsed.get(ParseKey.VERB) == Verb.SENT_TO_GRAVEYARD:
-                    parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
-                    parsed[ParseKey.CARD] = self.del_ruby(text_array[0].get(MessageKey.TEXT))
-                    parsed[ParseKey.TARGET] = parsed[ParseKey.CARD] # 念のため
-                    parsed[ParseKey.REASON] = text_array[2]
-                    if parsed.get(ParseKey.REASON) in [Reason.SBA_DAMEGE, Reason.SBA_DEATHTOUCH, Reason.SBA_ZERO_TOUGHNESS, Reason.SBA_ZERO_LOYALTY]: # 死亡（致死ダメージ、接死ダメージ、タフネス0未満、忠誠度0）
-                        parsed[ParseKey.EVENT] = Event.DIE
-                    elif parsed.get(ParseKey.REASON) in [Reason.DESTROY]: # 破壊
-                        parsed[ParseKey.EVENT] = Event.DESTROY
-                    elif parsed.get(ParseKey.REASON) in [Reason.SACRIFICE]: # 生け贄
-                        parsed[ParseKey.EVENT] = Event.SACRIFICE
-                    elif parsed.get(ParseKey.REASON) in [Reason.CONJURE]: # 創出
-                        parsed[ParseKey.EVENT] = Event.CONJURE
-                    elif parsed.get(ParseKey.REASON) in [Reason.DISCARD]: # ディスカード
-                        parsed[ParseKey.EVENT] = Event.DISCARD
-                    elif parsed.get(ParseKey.REASON) in [Reason.MILL, Reason.PUT, Reason.SBA_UNATTACHED_AURA, Reason.NIL]: # 墓地に置く（切削、墓地にカードを置く効果、不正オーラ、対象不適正呪文）
-                        parsed[ParseKey.EVENT] = Event.PUT_INTO_GRAVEYARD
-                    else:
-                        self.logger.warning("warning: 不明なreason: {}".format(parsed.get(ParseKey.REASON)))
-                elif parsed.get(ParseKey.VERB) == Verb.STARTING_HAND:
-                    parsed[ParseKey.EVENT] = Event.MULLIGAN_CHECK
-                elif parsed.get(ParseKey.VERB) == Verb.VS:
-                    self.hero_screen_name = text_array[0].get(MessageKey.TEXT)
-                    self.opponent_screen_name = text_array[2].get(MessageKey.TEXT)
-                    parsed[ParseKey.SOURCE] = self.hero_screen_name # なんとなく
-                    parsed[ParseKey.TARGET] = self.opponent_screen_name # なんとなく
-                    parsed[ParseKey.EVENT] = Event.GAME_START
+                parsed[ParseKey.EVENT] = Event.DRAW
+            elif parsed.get(ParseKey.VERB) == Verb.EXILES:
+                parsed[ParseKey.IS_OPPONENT] = True if text_array[2].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
+                parsed[ParseKey.CARD] = self.del_ruby(text_array[2].get(MessageKey.TEXT))
+                parsed[ParseKey.TARGET] = parsed[ParseKey.CARD] # 念のため
+                parsed[ParseKey.EVENT] = Event.EXILE
+            elif parsed.get(ParseKey.VERB) == Verb.LIFE_TOTAL_CHANGED:
+                parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
+                parsed[ParseKey.LIFE_FROM] = int(text_array[2].split(" -> ")[0])
+                parsed[ParseKey.LIFE_TO] = int(text_array[2].split(" -> ")[1])
+                parsed[ParseKey.SOURCE] = parsed[ParseKey.LIFE_FROM] # 念のため
+                parsed[ParseKey.TARGET] = parsed[ParseKey.LIFE_TO] # 念のため
+                parsed[ParseKey.EVENT] = Event.LIFE_GAIN if parsed[ParseKey.LIFE_FROM] < parsed[ParseKey.LIFE_TO] else Event.LIFE_LOSE
+                parsed[ParseKey.LIFE_DIFF] = abs(parsed[ParseKey.LIFE_TO] - parsed[ParseKey.LIFE_FROM])
+            elif parsed.get(ParseKey.VERB) == Verb.PLAYS:
+                parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
+                parsed[ParseKey.CARD] = self.del_ruby(text_array[2].get(MessageKey.TEXT))
+                parsed[ParseKey.TARGET] = parsed[ParseKey.CARD] # 念のため
+                parsed[ParseKey.EVENT] = Event.PLAY_LAND
+            elif parsed.get(ParseKey.VERB) == Verb.RESOLVES:
+                parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
+                parsed[ParseKey.CARD] = self.del_ruby(text_array[0].get(MessageKey.TEXT))
+                parsed[ParseKey.TARGET] = parsed[ParseKey.CARD] # 念のため
+                parsed[ParseKey.EVENT] = Event.RESOLVE
+            elif parsed.get(ParseKey.VERB) == Verb.SENT_TO_GRAVEYARD:
+                parsed[ParseKey.IS_OPPONENT] = True if text_array[0].get(MessageKey.TYPE) == MessageValue.OPPONENT else False
+                parsed[ParseKey.CARD] = self.del_ruby(text_array[0].get(MessageKey.TEXT))
+                parsed[ParseKey.TARGET] = parsed[ParseKey.CARD] # 念のため
+                parsed[ParseKey.REASON] = text_array[2]
+                if parsed.get(ParseKey.REASON) in [Reason.SBA_DAMEGE, Reason.SBA_DEATHTOUCH, Reason.SBA_ZERO_TOUGHNESS, Reason.SBA_ZERO_LOYALTY]: # 死亡（致死ダメージ、接死ダメージ、タフネス0未満、忠誠度0）
+                    parsed[ParseKey.EVENT] = Event.DIE
+                elif parsed.get(ParseKey.REASON) in [Reason.DESTROY]: # 破壊
+                    parsed[ParseKey.EVENT] = Event.DESTROY
+                elif parsed.get(ParseKey.REASON) in [Reason.SACRIFICE]: # 生け贄
+                    parsed[ParseKey.EVENT] = Event.SACRIFICE
+                elif parsed.get(ParseKey.REASON) in [Reason.CONJURE]: # 創出
+                    parsed[ParseKey.EVENT] = Event.CONJURE
+                elif parsed.get(ParseKey.REASON) in [Reason.DISCARD]: # ディスカード
+                    parsed[ParseKey.EVENT] = Event.DISCARD
+                elif parsed.get(ParseKey.REASON) in [Reason.MILL, Reason.PUT, Reason.SBA_UNATTACHED_AURA, Reason.NIL]: # 墓地に置く（切削、墓地にカードを置く効果、不正オーラ、対象不適正呪文）
+                    parsed[ParseKey.EVENT] = Event.PUT_INTO_GRAVEYARD
                 else:
-                    self.logger.warning("warning: 不明なverb: {}".format(parsed.get(ParseKey.VERB)))
-
+                    self.logger.warning("warning: 不明なreason: {}".format(parsed.get(ParseKey.REASON)))
+            elif parsed.get(ParseKey.VERB) == Verb.STARTING_HAND:
+                parsed[ParseKey.EVENT] = Event.MULLIGAN_CHECK
+            elif parsed.get(ParseKey.VERB) == Verb.VS:
+                self.hero_screen_name = text_array[0].get(MessageKey.TEXT)
+                self.opponent_screen_name = text_array[2].get(MessageKey.TEXT)
+                parsed[ParseKey.SOURCE] = self.hero_screen_name # なんとなく
+                parsed[ParseKey.TARGET] = self.opponent_screen_name # なんとなく
+                parsed[ParseKey.EVENT] = Event.GAME_START
+            else:
+                self.logger.warning("warning: 不明なverb: {}".format(parsed.get(ParseKey.VERB)))
             return parsed
-        else:
-            return None
+        return None
+
 
     def gen_text(self, parsed):
         if not parsed.get(ParseKey.IS_OPPONENT):
@@ -764,13 +766,29 @@ class CommentaryBackend(tkinter.Frame):
             return None
 
     def on_message(self, ws, message):
-        parsed = self.parse(json.loads(message))
-        if parsed:
-            self.logger.debug(parsed)
+        blob = json.loads(message)
+        self.logger.debug(blob)
+        if blob:
             cid = ""
             text = ""
             speak_param_obj = {}
-            cid, text, speak_param_obj = self.gen_text(parsed)
+            if blob.get(MessageKey.GAME_HISTORY_EVENT):
+                parsed = self.parse(json.loads(message))
+                if parsed:
+                    self.logger.debug(parsed)
+                    cid, text, speak_param_obj = self.gen_text(parsed)
+            elif blob.get(MessageKey.DRAFT_PICK_EVENT):
+                cid = self.config.get(ConfigKey.SPEAKER1).get(ConfigKey.CID)
+                card_name = blob.get(MessageKey.DRAFT_PICK_EVENT).get(MessageKey.CARD_NAME)
+                text = card_name+"をピック"
+            elif blob.get(MessageKey.DRAFT_PACK_EVENT):
+                cid = self.config.get(ConfigKey.SPEAKER1).get(ConfigKey.CID)
+                pack = blob.get(MessageKey.DRAFT_PICK_EVENT).get(MessageKey.PACK)
+                pick = blob.get(MessageKey.DRAFT_PICK_EVENT).get(MessageKey.PICK)
+                if pack == 1:
+                    text = pack+"パック目"
+                else:
+                    text = pack+"の"+pick
             if cid and text:
                 speaker = self.get_speaker_name(cid)
                 if not speaker:
@@ -781,6 +799,8 @@ class CommentaryBackend(tkinter.Frame):
                 self.master_text.yview_moveto(1)
                 self.master_text.config(state="disabled")
                 self.speak(cid, text, speak_param_obj)
+                
+
 
     def on_error(self, ws, error):
         self.logger.error("error: called on_error")
