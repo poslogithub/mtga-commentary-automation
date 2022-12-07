@@ -783,12 +783,12 @@ class CommentaryBackend(tkinter.Frame):
                 text = card_name+"をピック"
             elif blob.get(MessageKey.DRAFT_PACK_EVENT):
                 cid = self.config.get(ConfigKey.SPEAKER1).get(ConfigKey.CID)
-                pack = blob.get(MessageKey.DRAFT_PICK_EVENT).get(MessageKey.PACK)
-                pick = blob.get(MessageKey.DRAFT_PICK_EVENT).get(MessageKey.PICK)
-                if pack == 1:
-                    text = pack+"パック目"
+                pack = blob.get(MessageKey.DRAFT_PACK_EVENT).get(MessageKey.PACK)
+                pick = blob.get(MessageKey.DRAFT_PACK_EVENT).get(MessageKey.PICK)
+                if pick == 1:
+                    text = str(pack)+"パック目"
                 else:
-                    text = pack+"の"+pick
+                    text = str(pack)+"の"+str(pick)
             if cid and text:
                 speaker = self.get_speaker_name(cid)
                 if not speaker:
