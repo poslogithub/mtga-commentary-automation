@@ -33,7 +33,7 @@ class MessageKey:
     RARE = "Rare"
     UNCOMMON = "Uncommon"
     COMMON = "Common"
-    BASIC_LAND = "BasicLand"
+    BASIC = "Basic"
 
 class MessageValue:
     GAME = "game"
@@ -803,15 +803,14 @@ class CommentaryBackend(tkinter.Frame):
                         text = text + "。レア抜け"
                     elif len(uncommon) <= 2:
                         text = text + "。アンコモン抜け"
-                if pick <= 3:
-                    if rare:
-                        text = text + "。レアは"
-                        for card_name in rare:
-                            text = text + "、" + card_name
-                    if uncommon:
-                        text = text + "。アンコモンは"
-                        for card_name in uncommon:
-                            text = text + "、" + card_name
+                if rare:
+                    text = text + "。レアは"
+                    for card_name in rare:
+                        text = text + "、" + card_name
+                if uncommon:
+                    text = text + "。アンコモンは"
+                    for card_name in uncommon:
+                        text = text + "、" + card_name
             if cid and text:
                 speaker = self.get_speaker_name(cid)
                 if not speaker:
