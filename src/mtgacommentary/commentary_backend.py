@@ -30,6 +30,10 @@ class MessageKey:
     PACK = "Pack"
     PICK = "Pick"
     CARD_NAME = "CardName"
+    RARE = "Rare"
+    UNCOMMON = "Uncommon"
+    COMMON = "Common"
+    BASIC_LAND = "BasicLand"
 
 class MessageValue:
     GAME = "game"
@@ -779,16 +783,31 @@ class CommentaryBackend(tkinter.Frame):
                     cid, text, speak_param_obj = self.gen_text(parsed)
             elif blob.get(MessageKey.DRAFT_PICK_EVENT):
                 cid = self.config.get(ConfigKey.SPEAKER1).get(ConfigKey.CID)
-                card_name = blob.get(MessageKey.DRAFT_PICK_EVENT).get(MessageKey.CARD_NAME)
+                event = blob.get(MessageKey.DRAFT_PICK_EVENT)
+                card_name = event.get(MessageKey.CARD_NAME)
                 text = card_name+"をピック"
             elif blob.get(MessageKey.DRAFT_PACK_EVENT):
                 cid = self.config.get(ConfigKey.SPEAKER1).get(ConfigKey.CID)
-                pack = blob.get(MessageKey.DRAFT_PACK_EVENT).get(MessageKey.PACK)
-                pick = blob.get(MessageKey.DRAFT_PACK_EVENT).get(MessageKey.PICK)
+                event = blob.get(MessageKey.DRAFT_PACK_EVENT)
+                pack = event.get(MessageKey.PACK)
+                pick = event.get(MessageKey.PICK)
+                rare = event.get(MessageKey.RARE)
+                uncommon = event.get(MessageKey.UNCOMMON)
+                common = event.get(MessageKey.COMMON)
                 if pick == 1:
                     text = str(pack)+"パック目"
                 else:
                     text = str(pack)+"の"+str(pick)
+                if pick <= 3:
+                    if not rare:
+                        text = text + "。レア抜け"
+                    else:
+                        text = text + "。レアは"
+                        for card_name in rare:
+                            text = text + card_name + "、"
+                    if len(uncommon) <= 2:
+                        #TODO アンコモン抜けの実況
+
             if cid and text:
                 speaker = self.get_speaker_name(cid)
                 if not speaker:
