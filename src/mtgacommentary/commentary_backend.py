@@ -798,16 +798,20 @@ class CommentaryBackend(tkinter.Frame):
                     text = str(pack)+"パック目"
                 else:
                     text = str(pack)+"の"+str(pick)
-                if pick <= 3:
+                if pick == 2:
                     if not rare:
                         text = text + "。レア抜け"
-                    else:
+                    elif len(uncommon) <= 2:
+                        text = text + "。アンコモン抜け"
+                if pick <= 3:
+                    if rare:
                         text = text + "。レアは"
                         for card_name in rare:
-                            text = text + card_name + "、"
-                    if len(uncommon) <= 2:
-                        #TODO アンコモン抜けの実況
-
+                            text = text + "、" + card_name
+                    if uncommon:
+                        text = text + "。アンコモンは"
+                        for card_name in uncommon:
+                            text = text + "、" + card_name
             if cid and text:
                 speaker = self.get_speaker_name(cid)
                 if not speaker:
