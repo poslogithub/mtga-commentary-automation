@@ -648,9 +648,8 @@ class CommentaryBackend(tkinter.Frame):
                 parsed[ParseKey.EVENT] = Event.GAME_START
             else:
                 self.logger.warning("warning: 不明なverb: {}".format(parsed.get(ParseKey.VERB)))
-            return parsed
-        return None
-
+        return parsed
+        
 
     def gen_text(self, parsed):
         if not parsed.get(ParseKey.IS_OPPONENT):
@@ -777,7 +776,8 @@ class CommentaryBackend(tkinter.Frame):
             text = ""
             speak_param_obj = {}
             if blob.get(MessageKey.GAME_HISTORY_EVENT):
-                parsed = self.parse(json.loads(message))
+                text_array = blob.get(MessageKey.GAME_HISTORY_EVENT)
+                parsed = self.parse(text_array)
                 if parsed:
                     self.logger.debug(parsed)
                     cid, text, speak_param_obj = self.gen_text(parsed)
