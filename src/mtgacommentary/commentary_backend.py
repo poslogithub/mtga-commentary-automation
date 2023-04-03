@@ -1,23 +1,22 @@
 import _thread
-from datetime import datetime
-from enum import Enum
 import json
 import logging
 import logging.handlers
 import os
 import re
 import sys
-from threading import Thread
 import tkinter
+from datetime import datetime
+from enum import Enum
+from threading import Thread
 from tkinter import StringVar, filedialog, messagebox, ttk
 from tkinter.scrolledtext import ScrolledText
 from urllib.parse import quote
 from urllib.request import urlopen
+
 import psutil
 import websocket
-
 from seikasay2 import SeikaSay2
-
 
 
 # message from mtgatracker_backend
